@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PCCS AWB">
+<meta name="theme-color" content="#0a0e1a">
+<title>PCCS AWB Tool</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Root Variables ─────────────────────────────────────────── */
+:root {
+  --bg:       #0a0e1a;
+  --card:     #111827;
+  --card2:    #1a2235;
+  --accent:   #00c6ff;
+  --accent2:  #f97316;
+  --green:    #22c55e;
+  --red:      #f87171;
+  --border:   #1e3a5f;
+  --text:     #e2e8f0;
+  --muted:    #64748b;
+  --input-bg: #0d1526;
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Body ───────────────────────────────────────────────────── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 16px 16px 48px;
+  background-image:
+    radial-gradient(ellipse at 15% 10%, rgba(0,198,255,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 85%, rgba(249,115,22,0.07) 0%, transparent 55%);
+  overflow-x: hidden;
+}
+
+.container { max-width: 480px; margin: 0 auto; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.header { text-align: center; margin-bottom: 20px; padding-top: 6px; }
+
+.header h1 {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.65rem; font-weight: 700; letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 3px;
+}
+
+.header p { font-size: 0.73rem; color: var(--muted); }
+
+/* ── Install Banner ─────────────────────────────────────────── */
+.install-banner {
+  background: linear-gradient(135deg, rgba(0,198,255,0.12), rgba(249,115,22,0.08));
+  border: 1px solid var(--accent); border-radius: 12px;
+  padding: 11px 14px; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.install-banner p { font-size: 0.73rem; color: var(--text); line-height: 1.4; }
+.install-banner p span { color: var(--accent); font-weight: 600; }
+.install-btn {
+  background: var(--accent); border: none; border-radius: 7px;
+  color: #0a0e1a; font-family: 'Rajdhani', sans-serif;
+  font-weight: 700; font-size: 0.82rem; padding: 7px 12px;
+  cursor: pointer; white-space: nowrap; letter-spacing: 0.5px;
+}
+.close-btn {
+  background: none; border: none; color: var(--muted);
+  font-size: 1.1rem; cursor: pointer; padding: 2px 4px; line-height: 1;
+}
+
+/* ── Card ───────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.92rem; font-weight: 600;
+  color: var(--accent); letter-spacing: 1px;
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title::before {
+  content: ''; width: 4px; height: 16px;
+  background: var(--accent); border-radius: 2px; flex-shrink: 0;
+}
+.card-title.green { color: var(--green); }
+.card-title.green::before { background: var(--green); }
+
+/* ── Upload Zone ────────────────────────────────────────────── */
+.upload-zone {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 22px 16px; text-align: center;
+  cursor: pointer; transition: all 0.2s; background: transparent;
+}
+.upload-zone:hover, .upload-zone:active {
+  border-color: var(--accent); background: rgba(0,198,255,0.04);
+}
+.upload-zone.ready {
+  border-style: solid; border-color: var(--green);
+  background: rgba(34,197,94,0.04);
+}
+
+.uz-icon { font-size: 26px; margin-bottom: 10px; }
+.uz-title { font-size: 0.92rem; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.uz-sub { font-size: 0.73rem; color: var(--muted); }
+
+.file-badge {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px; padding: 9px 12px;
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.25); border-radius: 8px;
+}
+.file-badge-name {
+  font-size: 0.78rem; font-weight: 600; color: var(--green);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.file-badge-size { font-size: 0.68rem; color: var(--muted); flex-shrink: 0; }
+
+#fileInput { display: none; }
+
+/* ── Main Action Buttons ────────────────────────────────────── */
+.main-btns {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 14px;
+}
+
+.main-btn {
+  padding: 14px 10px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--text); cursor: pointer;
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  transition: all 0.15s; text-align: center; line-height: 1;
+}
+.main-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.main-btn:not(:disabled):active { transform: scale(0.97); }
+
+.main-btn .btn-icon { font-size: 22px; display: block; margin-bottom: 7px; }
+.main-btn .btn-label { font-size: 0.8rem; font-weight: 600; display: block; }
+.main-btn .btn-sub { font-size: 0.66rem; color: var(--muted); display: block; margin-top: 3px; }
+
+.btn-b1 { border-color: rgba(0,198,255,0.25); }
+.btn-b1:not(:disabled):hover { background: rgba(0,198,255,0.07); border-color: rgba(0,198,255,0.5); }
+.btn-b1.is-active { background: rgba(0,198,255,0.12); border-color: var(--accent); }
+
+.btn-b2 { border-color: rgba(249,115,22,0.25); }
+.btn-b2:not(:disabled):hover { background: rgba(249,115,22,0.07); border-color: rgba(249,115,22,0.5); }
+.btn-b2.is-active { background: rgba(249,115,22,0.12); border-color: var(--accent2); }
+
+/* ── Progress Steps ─────────────────────────────────────────── */
+.steps { display: flex; flex-direction: column; }
+.step {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 0; border-bottom: 1px solid rgba(30,58,95,0.4);
+}
+.step:last-child { border-bottom: none; }
+
+.sdot {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rajdhani', sans-serif; font-size: 0.82rem; font-weight: 700;
+  transition: all 0.3s;
+}
+.sdot.wait  { background: var(--input-bg); color: var(--muted); }
+.sdot.going { background: rgba(0,198,255,0.18); color: var(--accent);
+               animation: sdot-pulse 1.2s ease-in-out infinite; }
+.sdot.done  { background: rgba(34,197,94,0.18); color: var(--green); }
+.sdot.fail  { background: rgba(248,113,113,0.18); color: var(--red); }
+
+@keyframes sdot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,198,255,0.35); }
+  50%       { box-shadow: 0 0 0 6px rgba(0,198,255,0); }
+}
+
+.step-txt { font-size: 0.8rem; color: var(--muted); transition: color 0.3s; }
+.step-txt.on   { color: var(--text); }
+.step-txt.done { color: var(--text); }
+
+/* ── Detail Rows ────────────────────────────────────────────── */
+.d-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid rgba(30,58,95,0.4);
+}
+.d-row:last-child { border-bottom: none; }
+.d-lbl  { font-size: 0.76rem; color: var(--muted); }
+.d-val  { font-family: 'Rajdhani', sans-serif; font-size: 0.98rem; font-weight: 700; color: var(--text); }
+.d-val.ac  { color: var(--accent); }
+.d-val.gr  { color: var(--green); font-size: 1.05rem; }
+.d-val.or  { color: var(--accent2); }
+
+/* ── Error Box ──────────────────────────────────────────────── */
+.err-box {
+  background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+  border-radius: 10px; padding: 12px 14px;
+  font-size: 0.78rem; color: var(--red); line-height: 1.55;
+  margin-top: 10px; white-space: pre-wrap;
+}
+
+/* ── Grid / Fields ──────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field  { display: flex; flex-direction: column; gap: 5px; }
+
+label {
+  font-size: 0.67rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+input[type="number"] {
+  background: var(--input-bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-size: 1.02rem; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+  padding: 10px 12px; outline: none; transition: border-color 0.2s; width: 100%;
+}
+input[type="number"]:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,198,255,0.1);
+}
+input[type="number"]::placeholder { color: #2d3f58; font-weight: 400; font-size: 0.82rem; }
+input[type="number"].filled { border-color: rgba(34,197,94,0.45); background: rgba(34,197,94,0.04); }
+input[type="number"].base-field { opacity: 0.65; cursor: default; }
+
+/* ── Method Tabs ────────────────────────────────────────────── */
+.tabs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+.tab {
+  padding: 11px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--input-bg);
+  color: var(--muted); cursor: pointer;
+  font-family: 'Noto Sans Devanagari', sans-serif; font-size: 0.8rem;
+  display: flex; align-items: center; gap: 12px;
+  transition: all 0.18s;
+}
+.tab:active { opacity: 0.8; }
+.tab.active {
+  background: linear-gradient(135deg, rgba(0,198,255,0.1), rgba(249,115,22,0.07));
+  border-color: var(--accent); color: var(--text);
+}
+.tab-num {
+  font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700;
+  color: var(--accent2); min-width: 22px;
+}
+.tab.active .tab-num { color: var(--accent); }
+
+.m-input         { display: none; }
+.m-input.visible { display: block; }
+
+/* ── Action Buttons ─────────────────────────────────────────── */
+.btn {
+  width: 100%; padding: 14px; border-radius: 10px; border: none;
+  cursor: pointer; font-family: 'Rajdhani', sans-serif;
+  font-size: 1.08rem; font-weight: 700; letter-spacing: 1px;
+  transition: all 0.15s;
+}
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+
+.btn-calc { background: linear-gradient(135deg, #005f8a, #00c6ff); color: #fff; margin-top: 14px; }
+.btn-dl   { background: linear-gradient(135deg, #145c30, #22c55e); color: #fff; margin-top: 10px; }
+.btn-rst  {
+  width: 100%; padding: 10px; background: transparent;
+  border: 1px solid var(--border); border-radius: 8px;
+  color: var(--muted); font-family: 'Noto Sans Devanagari', sans-serif;
+  font-size: 0.78rem; cursor: pointer; margin-top: 8px; transition: all 0.15s;
+}
+.btn-rst:active { border-color: var(--accent2); color: var(--accent2); }
+
+/* ── Result Rows ────────────────────────────────────────────── */
+.res-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px; border-radius: 8px; margin-bottom: 7px;
+  background: var(--card2); border: 1px solid transparent;
+}
+.res-row.hl { border-color: var(--accent2); background: rgba(249,115,22,0.08); }
+.res-lbl { font-size: 0.78rem; color: var(--muted); }
+.res-val {
+  font-family: 'Rajdhani', sans-serif; font-size: 1.08rem;
+  font-weight: 700; color: var(--text);
+}
+.res-row.hl .res-val { color: var(--accent2); }
+
+.res-total {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 14px; border-radius: 10px; margin-top: 4px;
+  background: linear-gradient(135deg, rgba(0,198,255,0.1), rgba(34,197,94,0.08));
+  border: 1px solid var(--accent);
+}
+.res-total-lbl {
+  font-family: 'Rajdhani', sans-serif; font-size: 0.88rem;
+  font-weight: 600; color: var(--accent); letter-spacing: 1px;
+}
+.res-total-val {
+  font-family: 'Rajdhani', sans-serif; font-size: 1.4rem;
+  font-weight: 700; color: var(--green);
+}
+
+.divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+.formula-note {
+  font-size: 0.7rem; color: var(--muted); text-align: center;
+  margin-top: 10px; padding: 8px; background: var(--input-bg);
+  border-radius: 8px; line-height: 1.6;
+}
+
+/* ── Utilities ──────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim { animation: slide-in 0.28s ease forwards; }
+
+/* ── Version ────────────────────────────────────────────────── */
+.version {
+  text-align: center; font-size: 0.67rem; color: var(--muted);
+  margin-top: 22px; line-height: 1.7;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>✈ PCCS AWB TOOL</h1>
+    <p>IndiGo AWB · GST Calculator · PDF Editor · v2.0</p>
+  </div>
+
+  <!-- Install Banner (hidden until PWA prompt) -->
+  <div class="install-banner hidden" id="installBanner">
+    <p>📱 इसे <span>Home Screen</span> पर App की तरह install करें!</p>
+    <button class="install-btn" id="installBtn">Install</button>
+    <button class="close-btn" onclick="document.getElementById('installBanner').classList.add('hidden')">✕</button>
+  </div>
+
+  <!-- ── Step 1: Upload ── -->
+  <div class="card">
+    <div class="card-title">AWB PDF Upload करो</div>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <div class="uz-icon">📄</div>
+      <div class="uz-title" id="uzTitle">PDF Select करो</div>
+      <div class="uz-sub" id="uzSub">Tap करके IndiGo AWB PDF choose करो</div>
+      <div class="file-badge hidden" id="fileBadge">
+        <span style="font-size:16px;">✅</span>
+        <span class="file-badge-name" id="fileName">-</span>
+        <span class="file-badge-size" id="fileSize">-</span>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,application/pdf">
+  </div>
+
+  <!-- ── Step 2: Choose Action ── -->
+  <div class="main-btns">
+    <button class="main-btn btn-b1" id="btnB1" disabled onclick="handleB1()">
+      <span class="btn-icon">🧾</span>
+      <span class="btn-label">GST Direct</span>
+      <span class="btn-sub">Calculate &amp; Download</span>
+    </button>
+    <button class="main-btn btn-b2" id="btnB2" disabled onclick="handleB2()">
+      <span class="btn-icon">🧮</span>
+      <span class="btn-label">Calculator Mode</span>
+      <span class="btn-sub">Auto-fill + PDF Edit</span>
+    </button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       BUTTON 1 SECTION
+       ════════════════════════════════════════════════════ -->
+  <div id="b1Wrap" class="hidden">
+
+    <!-- Progress -->
+    <div class="card" id="b1Progress">
+      <div class="card-title">Processing</div>
+      <div class="steps">
+        <div class="step"><div class="sdot wait" id="b1d1">1</div><div class="step-txt" id="b1t1">PDF se data extract होगा</div></div>
+        <div class="step"><div class="sdot wait" id="b1d2">2</div><div class="step-txt" id="b1t2">GST calculate होगा</div></div>
+        <div class="step"><div class="sdot wait" id="b1d3">3</div><div class="step-txt" id="b1t3">PDF edit होगी</div></div>
+        <div class="step"><div class="sdot wait" id="b1d4">4</div><div class="step-txt" id="b1t4">Download ready होगा</div></div>
+      </div>
+    </div>
+
+    <!-- Details card (shown after extraction) -->
+    <div class="card hidden" id="b1Details">
+      <div class="card-title">AWB Details</div>
+      <div class="d-row"><span class="d-lbl">AWB Number</span><span class="d-val" id="b1AwbNum">-</span></div>
+      <div class="d-row"><span class="d-lbl">Weight Charge</span><span class="d-val" id="b1Wc">-</span></div>
+      <div class="d-row"><span class="d-lbl">Due Agent</span><span class="d-val" id="b1Da">-</span></div>
+      <div class="d-row"><span class="d-lbl">Due Carrier</span><span class="d-val" id="b1Dc">-</span></div>
+      <div class="d-row"><span class="d-lbl">Base Total (Before GST)</span><span class="d-val ac" id="b1Base">-</span></div>
+      <div class="d-row"><span class="d-lbl">GST 18%</span><span class="d-val or" id="b1Gst">-</span></div>
+      <div class="d-row"><span class="d-lbl">New Total Prepaid</span><span class="d-val gr" id="b1Total">-</span></div>
+    </div>
+
+    <div class="err-box hidden" id="b1Err"></div>
+    <button class="btn btn-dl hidden" id="b1DlBtn" onclick="triggerDownload('b1')">⬇ PDF Download करो</button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       BUTTON 2 SECTION
+       ════════════════════════════════════════════════════ -->
+  <div id="b2Wrap" class="hidden">
+
+    <!-- Extracting spinner (brief) -->
+    <div class="card hidden" id="b2Extracting">
+      <div class="card-title">PDF Scan हो रही है...</div>
+      <div style="text-align:center; padding:12px 0; color:var(--muted); font-size:0.82rem;">
+        ⏳ AWB से values निकाल रहे हैं...
+      </div>
+    </div>
+
+    <!-- Auto-filled AWB details (editable) -->
+    <div class="card hidden" id="b2AutoFill">
+      <div class="card-title">AWB Details <span style="font-size:0.72rem;color:var(--green);font-family:sans-serif;font-weight:400;">(Auto-filled ✅)</span></div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Weight Charge (₹)</label>
+          <input type="number" id="b2Wc" step="0.01" inputmode="decimal" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Due Agent (₹)</label>
+          <input type="number" id="b2Da" step="0.01" inputmode="decimal" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Due Carrier (₹)</label>
+          <input type="number" id="b2Dc" step="0.01" inputmode="decimal" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>Base Prepaid (₹)</label>
+          <input type="number" id="b2Cp" step="0.01" inputmode="decimal" placeholder="0.00" class="base-field" tabindex="-1">
+        </div>
+      </div>
+      <div style="font-size:0.67rem;color:var(--muted);margin-top:10px;text-align:center;line-height:1.5;">
+        ✏ Galat value ho toh manually sahi karo · Base = WC + DA + DC
+      </div>
+    </div>
+
+    <!-- Calculator -->
+    <div class="card hidden" id="b2CalcCard">
+      <div class="card-title">तरीका चुनें</div>
+
+      <div class="tabs">
+        <div class="tab active" id="tab1" onclick="pickTab(1)">
+          <span class="tab-num">1</span>
+          <span>Target Prepaid Amount दो</span>
+        </div>
+        <div class="tab" id="tab2" onclick="pickTab(2)">
+          <span class="tab-num">2</span>
+          <span>OCDC में Amount जोड़ो</span>
+        </div>
+        <div class="tab" id="tab3" onclick="pickTab(3)">
+          <span class="tab-num">3</span>
+          <span>Prepaid में Amount जोड़ो</span>
+        </div>
+      </div>
+
+      <div class="m-input visible" id="m1">
+        <div class="field">
+          <label>Target Prepaid Amount (₹)</label>
+          <input type="number" id="inTarget" step="0.01" inputmode="decimal" placeholder="जितना final amount चाहिए">
+        </div>
+      </div>
+      <div class="m-input" id="m2">
+        <div class="field">
+          <label>OCDC में जोड़ने वाला Amount (₹)</label>
+          <input type="number" id="inOcdc" step="0.01" inputmode="decimal" placeholder="Due Carrier में जोड़ना है">
+        </div>
+      </div>
+      <div class="m-input" id="m3">
+        <div class="field">
+          <label>Prepaid में जोड़ने वाला Amount (₹)</label>
+          <input type="number" id="inAdd" step="0.01" inputmode="decimal" placeholder="Current Prepaid में जोड़ना है">
+        </div>
+      </div>
+
+      <button class="btn btn-calc" onclick="doCalc()">⚡ CALCULATE करें</button>
+      <div class="err-box hidden" id="calcErr"></div>
+    </div>
+
+    <!-- Result (shown after Calculate) -->
+    <div class="card hidden" id="b2Result">
+      <div class="card-title green">✅ Result</div>
+      <div class="res-row">     <span class="res-lbl">Weight Charge</span>      <span class="res-val" id="rWc">-</span></div>
+      <div class="res-row hl">  <span class="res-lbl">TAX (18% GST)</span>      <span class="res-val" id="rTax">-</span></div>
+      <div class="res-row">     <span class="res-lbl">Due Agent</span>           <span class="res-val" id="rDa">-</span></div>
+      <div class="res-row hl">  <span class="res-lbl">Due Carrier (नया)</span>  <span class="res-val" id="rDc">-</span></div>
+      <div class="divider"></div>
+      <div class="res-total">
+        <span class="res-total-lbl">TOTAL PREPAID</span>
+        <span class="res-total-val" id="rTotal">-</span>
+      </div>
+      <div class="formula-note" id="formulaNote"></div>
+    </div>
+
+    <!-- B2 Errors -->
+    <div class="err-box hidden" id="b2Err"></div>
+
+    <!-- Download + Reset -->
+    <button class="btn btn-dl hidden" id="b2DlBtn" onclick="triggerDownload('b2')">📄 PDF Edit &amp; Download</button>
+    <button class="btn-rst hidden" id="b2RstBtn" onclick="resetB2()">🔄 Reset करें</button>
+  </div>
+
+  <div class="version">
+    PCCS AWB Tool v2.0 · PRADEEP CARGO &amp; COURIER SERVICE<br>
+    No API · No Server Required*&nbsp;&nbsp;|&nbsp;&nbsp;*PDF.js &amp; PDF-lib CDN se load hote hain
+  </div>
+
+</div><!-- /container -->
+
+<!-- ── External Libraries ──────────────────────────────────── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+'use strict';
+
+// ── pdf.js worker ────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── App State ────────────────────────────────────────────────
+let pdfBytes       = null;   // raw ArrayBuffer of uploaded PDF
+let resultB1       = null;   // Uint8Array — edited PDF from Button 1
+let resultB2       = null;   // Uint8Array — edited PDF from Button 2
+let extracted      = null;   // { awb, wc, da, dc } from extraction
+let calcOut        = null;   // { assume, newTAX, newDC, newTotal, ... }
+let activeTab      = 1;
+let deferredPrompt = null;
+
+// ── PWA Install ──────────────────────────────────────────────
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').classList.remove('hidden');
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').classList.add('hidden');
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ── Helpers ──────────────────────────────────────────────────
+function r2(n)     { return Math.round(n * 100) / 100; }
+function delay(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+/** Format number with comma thousands separator and 2 decimal places.
+ *  e.g. 1503.58 → "1,503.58"  |  540.64 → "540.64" */
+function fmt(n) {
+  return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/** Show/hide element by id */
+function show(id)  { document.getElementById(id).classList.remove('hidden'); }
+function hide(id)  { document.getElementById(id).classList.add('hidden'); }
+function addClass(id, cls) { document.getElementById(id).classList.add(cls); }
+function remClass(id, cls) { document.getElementById(id).classList.remove(cls); }
+
+// ── File Input Listener ──────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Read raw bytes
+  pdfBytes  = await file.arrayBuffer();
+  resultB1  = null;
+  resultB2  = null;
+  extracted = null;
+  calcOut   = null;
+
+  // Update upload zone UI
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  show('fileBadge');
+  addClass('uploadZone', 'ready');
+  document.getElementById('uzTitle').textContent = 'File Ready ✅';
+  document.getElementById('uzSub').textContent   = 'Change करने के लिए tap करो';
+
+  // Enable main buttons
+  document.getElementById('btnB1').disabled = false;
+  document.getElementById('btnB2').disabled = false;
+  remClass('btnB1', 'is-active');
+  remClass('btnB2', 'is-active');
+
+  // Hide previous results
+  hide('b1Wrap');
+  hide('b2Wrap');
+  resetB1Steps();
+
+  // Clear the input so same file can be re-selected
+  e.target.value = '';
+});
+
+// ── PDF Extraction ───────────────────────────────────────────
+/**
+ * Extracts AWB financial values from an IndiGo AWB PDF (Page 1).
+ *
+ * Coordinate system: pdf.js uses bottom-left origin (same as PDF spec).
+ * All y-values verified against pdfminer analysis of 312-26312543.
+ *
+ * Fields and their verified bounding boxes:
+ *   Weight Charge : y = 308–330 , x = 70–115  (pdfminer y0 ≈ 313)
+ *   Due Agent     : y = 220–241 , x = 70–115  (pdfminer y0 ≈ 225)
+ *   Due Carrier   : y = 188–210 , x = 70–115  (pdfminer y0 ≈ 193)
+ *
+ * Strategy: for each zone, collect ALL numeric values that match
+ * /[\d,]+\.\d{2}/, then return the one at the HIGHEST y-coordinate.
+ * This ensures that if a PDF has been previously edited (with an
+ * overlaid value at a slightly lower y), we always get the original.
+ */
+async function extractAWB(arrayBuffer) {
+  const pdf  = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
+  const tc   = await page.getTextContent();
+  const items = tc.items;
+
+  // ── AWB number ──────────────────────────────────────────────
+  let awbNumber = '312-XXXXXXXX';
+  for (const item of items) {
+    const m = item.str.match(/312-\d{8}/);
+    if (m) { awbNumber = m[0]; break; }
+  }
+
+  // ── Generic value finder ─────────────────────────────────────
+  function findVal(xMin, xMax, yMin, yMax) {
+    let best = null, bestY = -1;
+    for (const item of items) {
+      const x   = item.transform[4];
+      const y   = item.transform[5];
+      const txt = item.str.trim();
+      if (!txt || x < xMin || x > xMax || y < yMin || y > yMax) continue;
+      const m = txt.match(/[\d,]+\.\d{2}/);
+      if (m) {
+        const val = parseFloat(m[0].replace(/,/g, ''));
+        // Accept positive values; prefer highest y (= original, not overlay)
+        if (val > 0 && y > bestY) { bestY = y; best = val; }
+      }
+    }
+    return best;
+  }
+
+  const wc = findVal(70, 115, 308, 330);   // Weight Charge
+  const da = findVal(70, 115, 220, 241);   // Due Agent
+  const dc = findVal(70, 115, 188, 210);   // Due Carrier
+
+  return { awbNumber, wc, da, dc };
+}
+
+// ── B1 Step Helper ───────────────────────────────────────────
+function resetB1Steps() {
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('b1d' + i);
+    const txt = document.getElementById('b1t' + i);
+    dot.className = 'sdot wait'; dot.textContent = i;
+    txt.className = 'step-txt';
+  }
+}
+
+function setStep(n, state, text) {
+  const dot = document.getElementById('b1d' + n);
+  const txt = document.getElementById('b1t' + n);
+  if (text) txt.textContent = text;
+  dot.className = 'sdot ' + state;
+  if      (state === 'done') { dot.textContent = '✓'; txt.className = 'step-txt done'; }
+  else if (state === 'going') { dot.textContent = n;  txt.className = 'step-txt on'; }
+  else if (state === 'fail')  { dot.textContent = '✕'; txt.className = 'step-txt'; }
+}
+
+// ── BUTTON 1 — GST Direct ────────────────────────────────────
+async function handleB1() {
+  if (!pdfBytes) return;
+
+  // Mark button active
+  addClass('btnB1', 'is-active'); remClass('btnB2', 'is-active');
+
+  // Show B1 section, hide B2
+  show('b1Wrap');  addClass('b1Wrap', 'anim');
+  hide('b2Wrap');
+  show('b1Progress');
+  hide('b1Details'); hide('b1Err'); hide('b1DlBtn');
+  resetB1Steps();
+  resultB1 = null;
+
+  try {
+    // Step 1 — Extract
+    setStep(1, 'going', 'PDF se data extract हो रहा है...');
+    const data = await extractAWB(pdfBytes.slice(0));
+    checkExtracted(data);  // throws if missing
+    setStep(1, 'done', 'Data extract हुआ ✓');
+
+    // Step 2 — Calculate
+    setStep(2, 'going', 'GST calculate हो रहा है...');
+    await delay(250);
+
+    const wc       = r2(data.wc);
+    const da       = r2(data.da);
+    const dc       = r2(data.dc);
+    const cp       = r2(wc + da + dc);
+    const gst      = r2(cp * 0.18);
+    const newTotal = r2(cp + gst);
+
+    // Populate details card
+    document.getElementById('b1AwbNum').textContent = data.awbNumber;
+    document.getElementById('b1Wc').textContent     = '₹ ' + fmt(wc);
+    document.getElementById('b1Da').textContent     = '₹ ' + fmt(da);
+    document.getElementById('b1Dc').textContent     = '₹ ' + fmt(dc);
+    document.getElementById('b1Base').textContent   = '₹ ' + fmt(cp);
+    document.getElementById('b1Gst').textContent    = '₹ ' + fmt(gst);
+    document.getElementById('b1Total').textContent  = '₹ ' + fmt(newTotal);
+    show('b1Details');
+    setStep(2, 'done', 'GST calculated ✓');
+
+    // Step 3 — Edit PDF
+    setStep(3, 'going', 'PDF edit हो रही है...');
+    resultB1 = await editPDF_B1(pdfBytes.slice(0), gst, newTotal);
+    setStep(3, 'done', 'PDF edited ✓');
+
+    // Step 4 — Ready
+    setStep(4, 'going', 'Download ready हो रहा है...');
+    await delay(250);
+    setStep(4, 'done', 'Download Ready! ✓');
+    show('b1DlBtn');
+
+  } catch (err) {
+    const el = document.getElementById('b1Err');
+    el.textContent = '⚠ ' + err.message;
+    show('b1Err');
+    // Mark active step as failed
+    for (let i = 1; i <= 4; i++) {
+      if (document.getElementById('b1d' + i).className.includes('going')) {
+        setStep(i, 'fail', 'Error आई');
+      }
+    }
+  }
+}
+
+// ── BUTTON 2 — Calculator Mode ───────────────────────────────
+async function handleB2() {
+  if (!pdfBytes) return;
+
+  // Mark button active
+  addClass('btnB2', 'is-active'); remClass('btnB1', 'is-active');
+
+  // Show B2 section, hide B1
+  show('b2Wrap');  addClass('b2Wrap', 'anim');
+  hide('b1Wrap');
+  hide('b2AutoFill'); hide('b2CalcCard'); hide('b2Result');
+  hide('b2Err');   hide('b2DlBtn');   hide('b2RstBtn');
+  show('b2Extracting');
+  resultB2 = null; calcOut = null;
+
+  // Disable button while extracting
+  document.getElementById('btnB2').disabled = true;
+
+  try {
+    const data = await extractAWB(pdfBytes.slice(0));
+    checkExtracted(data);
+
+    // Store extracted data
+    extracted = {
+      awb: data.awbNumber,
+      wc:  r2(data.wc),
+      da:  r2(data.da),
+      dc:  r2(data.dc)
+    };
+
+    const cp = r2(extracted.wc + extracted.da + extracted.dc);
+
+    // Fill inputs
+    setInput('b2Wc', extracted.wc);
+    setInput('b2Da', extracted.da);
+    setInput('b2Dc', extracted.dc);
+    setInput('b2Cp', cp);
+
+    ['b2Wc', 'b2Da', 'b2Dc', 'b2Cp'].forEach(id => {
+      addClass(id, 'filled');
+    });
+
+    // Reset method inputs
+    pickTab(1);
+    document.getElementById('inTarget').value = '';
+    document.getElementById('inOcdc').value   = '';
+    document.getElementById('inAdd').value    = '';
+
+    hide('b2Extracting');
+    show('b2AutoFill');
+    show('b2CalcCard');
+    addClass('b2AutoFill', 'anim');
+    addClass('b2CalcCard', 'anim');
+
+    setTimeout(() => {
+      document.getElementById('b2AutoFill')
+        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+
+  } catch (err) {
+    hide('b2Extracting');
+    const el = document.getElementById('b2Err');
+    el.textContent = '⚠ ' + err.message;
+    show('b2Err');
+  }
+
+  document.getElementById('btnB2').disabled = false;
+}
+
+// ── Tab Picker ───────────────────────────────────────────────
+function pickTab(n) {
+  activeTab = n;
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('tab' + i).classList.toggle('active', i === n);
+    document.getElementById('m' + i).classList.toggle('visible', i === n);
+  }
+  // Clear previous result when method changes
+  hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('calcErr');
+  resultB2 = null; calcOut = null;
+}
+
+// ── Live Base Prepaid update ─────────────────────────────────
+// When user edits WC / DA / DC, auto-recalculate Base Prepaid
+['b2Wc', 'b2Da', 'b2Dc'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const wc = parseFloat(document.getElementById('b2Wc').value) || 0;
+    const da = parseFloat(document.getElementById('b2Da').value) || 0;
+    const dc = parseFloat(document.getElementById('b2Dc').value) || 0;
+    setInput('b2Cp', r2(wc + da + dc));
+    // Invalidate any previous result
+    hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn');
+    resultB2 = null; calcOut = null;
+  });
+});
+
+// ── Calculate ────────────────────────────────────────────────
+function doCalc() {
+  const errEl = document.getElementById('calcErr');
+  hide('calcErr');
+
+  const wc = parseFloat(document.getElementById('b2Wc').value);
+  const da = parseFloat(document.getElementById('b2Da').value);
+  const dc = parseFloat(document.getElementById('b2Dc').value);
+  const cp = parseFloat(document.getElementById('b2Cp').value);
+
+  if ([wc, da, dc, cp].some(isNaN)) {
+    showErr('calcErr', 'AWB Details में सभी values भरो पहले!'); return;
+  }
+  if (wc <= 0 || da < 0 || dc <= 0 || cp <= 0) {
+    showErr('calcErr', 'Values 0 या negative नहीं होनी चाहिए!'); return;
+  }
+
+  let assume = 0;
+
+  if (activeTab === 1) {
+    const tp = parseFloat(document.getElementById('inTarget').value);
+    if (isNaN(tp) || tp <= 0) { showErr('calcErr', 'Target Prepaid Amount भरो!'); return; }
+    assume = r2((tp / 1.18) - cp);
+    if (assume < 0) {
+      showErr('calcErr', `Target बहुत कम है। कम से कम ₹${fmt(r2(cp * 1.18 + 1))} दो।`); return;
+    }
+  } else if (activeTab === 2) {
+    const oa = parseFloat(document.getElementById('inOcdc').value);
+    if (isNaN(oa) || oa <= 0) { showErr('calcErr', 'OCDC Amount भरो!'); return; }
+    assume = r2(oa);
+  } else {
+    const ap = parseFloat(document.getElementById('inAdd').value);
+    if (isNaN(ap) || ap <= 0) { showErr('calcErr', 'Add Prepaid Amount भरो!'); return; }
+    assume = r2(ap);
+  }
+
+  // Core calculations
+  const newBase  = r2(cp + assume);
+  const newTAX   = r2(newBase * 0.18);
+  const newDC    = r2(dc + assume);
+  const newTotal = r2(wc + newTAX + da + newDC);
+
+  calcOut = { wc, da, dc, cp, assume, newBase, newTAX, newDC, newTotal };
+
+  // Populate result UI
+  document.getElementById('rWc').textContent    = '₹ ' + fmt(wc);
+  document.getElementById('rTax').textContent   = '₹ ' + fmt(newTAX);
+  document.getElementById('rDa').textContent    = '₹ ' + fmt(da);
+  document.getElementById('rDc').textContent    = '₹ ' + fmt(newDC);
+  document.getElementById('rTotal').textContent = '₹ ' + fmt(newTotal);
+  document.getElementById('formulaNote').textContent =
+    `Assume: ₹${fmt(assume)} | Base: ₹${fmt(newBase)} × 18% = TAX ₹${fmt(newTAX)}`;
+
+  show('b2Result');  addClass('b2Result', 'anim');
+  show('b2DlBtn');
+  show('b2RstBtn');
+
+  // Pre-render the edited PDF in background (non-blocking)
+  resultB2 = null;
+  editPDF_B2(pdfBytes.slice(0), newTAX, newDC, newTotal)
+    .then(bytes => { resultB2 = bytes; })
+    .catch(() => { resultB2 = null; });
+
+  setTimeout(() => {
+    document.getElementById('b2Result')
+      .scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
+}
+
+// ── PDF Anchor Extractor ──────────────────────────────────────
+/**
+ * Extracts the "..." placeholder position from the TAX cell.
+ * This is the DYNAMIC ANCHOR for all edit coordinates.
+ *
+ * CRITICAL DISCOVERY (verified across multiple AWBs):
+ *   IndiGo AWB PDFs have a uniform Y-offset that varies per AWB
+ *   (up to ±2.4pt difference). ALL fields shift together by the
+ *   same amount. So we find "..." at runtime and compute all
+ *   other positions relative to it.
+ *
+ *   "..." is always at:  x ≈ 140–146,  y varies per AWB
+ *   Gap to top border:   always exactly 0.6418pt above dots_y1
+ *   Right border:        always x = 159.294
+ *
+ * Returns: { dotsY0, dotsY1 } — baseline and top of "..." char box
+ * Falls back to known values if "..." not found.
+ */
+async function extractAnchor(arrayBuffer) {
+  const pdf  = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
+  const tc   = await page.getTextContent();
+
+  for (const item of tc.items) {
+    const txt = item.str.trim();
+    const x   = item.transform[4];
+    const y   = item.transform[5];
+    // "..." is always near x=140, in the TAX cell area (y≈255–285)
+    if (txt === '...' && x > 135 && x < 150 && y > 255 && y < 290) {
+      const dotsY0 = y;                           // baseline
+      const dotsY1 = y + (item.height || 9.007);  // top of char box
+      return { dotsY0, dotsY1 };
+    }
+  }
+  // Fallback to known coordinates from most common AWB variant
+  return { dotsY0: 269.535, dotsY1: 278.542 };
+}
+
+// ── Shared PDF Edit Core ──────────────────────────────────────
+/**
+ * Core editing logic shared by B1 and B2.
+ *
+ * DYNAMIC POSITIONING (verified across all AWB variants):
+ *   All Y coordinates are computed relative to dotsY0 (anchor).
+ *   Offsets measured precisely via pdfminer across multiple AWBs:
+ *
+ *   TAX cell:
+ *     Top border    = dotsY1 + 0.6418  (always consistent)
+ *     Rect bottom   = dotsY0 - 2.5
+ *     Rect top      = dotsY1 + 0.4     (0.24pt below top border → safe)
+ *     Write TAX at  = dotsY0 - 1.661   (slightly below dots baseline)
+ *     TAX label x   = 138 (fixed, never changes)
+ *     Right border  = 159.294 → "..." cover ends at x=159.3 max
+ *
+ *   Valuation "0.00" cell:
+ *     Rect y        = dotsY0 - 18.5,  height=9.5
+ *
+ *   Due Carrier cell:
+ *     Rect y        = dotsY0 - 78.4,  height=19.5
+ *     Write at      = dotsY0 - 74.906 (center of cell)
+ *
+ *   Total Prepaid cell:
+ *     Rect y        = dotsY0 - 134.5, height=11.0
+ *     Write at      = dotsY0 - 130.644 (center of cell)
+ *
+ * RIGHT ALIGNMENT:
+ *   RIGHT_EDGE = 106.754 (Weight Charge last-char x1, never changes)
+ *   drawX = RIGHT_EDGE - font.widthOfTextAtSize(text, 8)
+ *
+ * FONT: Helvetica non-bold, values=8pt, TAX label=8pt (one size down)
+ */
+async function applyEdits(bytes, fields) {
+  // fields = { gst, newTotal, newDC (optional) }
+  const { PDFDocument, rgb, StandardFonts } = PDFLib;
+  const doc   = await PDFDocument.load(bytes);
+  const page  = doc.getPages()[0];
+  const font  = await doc.embedFont(StandardFonts.Helvetica);
+  const white = rgb(1, 1, 1);
+  const black = rgb(0, 0, 0);
+
+  // Dynamic anchor
+  const { dotsY0, dotsY1 } = await extractAnchor(bytes.slice(0));
+
+  const RIGHT_EDGE = 106.754;
+
+  /** Right-align text to RIGHT_EDGE */
+  function rDraw(text, y) {
+    const w = font.widthOfTextAtSize(text, 8);
+    page.drawText(text, { x: RIGHT_EDGE - w, y, size: 8, font, color: black });
+  }
+
+  // ── (A) TAX Cell ─────────────────────────────────────────────
+  // TWO SHORT RECTS (single tall rect always touches top border
+  // at sub-pixel level — "..." char box top is only 0.642pt below border)
+  //
+  // RECT 1: TAX value  (x=57-124)  writeY=dotsY0-3.5  gap-from-border≈4.6pt ✅
+  // RECT 2: "..." ink  (x=134-159.3) covers actual ink (y=dotsY0 to +1.4pt) ✅
+
+  const taxWriteY = dotsY0 - 3.5;
+  page.drawRectangle({ x: 57,  y: taxWriteY - 0.5, width: 67.0, height: 9.0, color: white, borderWidth: 0 });
+  page.drawRectangle({ x: 134, y: dotsY0   - 0.5,  width: 25.3, height: 3.5, color: white, borderWidth: 0 });
+  page.drawText('TAX',         { x: 138, y: taxWriteY, size: 8, font, color: black });
+  rDraw(fmt(fields.gst), taxWriteY);
+
+  // ── Valuation "0.00" Cell ────────────────────────────────────
+  // UNIVERSAL OFFSETS (verified: BLR AWB dotsY0=268.976, CCU AWB dotsY0=271.378)
+  // Cell borders always at dotsY0 ± 7.806pt (TAX bottom = Val top)
+  // Safe interior: 1.0pt margin from inner edge of each border
+  // rect_bot = dotsY0 - 18.215,  h = 8.809
+  page.drawRectangle({ x: 76, y: dotsY0 - 18.215, width: 40, height: 8.809, color: white, borderWidth: 0 });
+
+  // ── (B) Due Carrier Cell (only for B2) ───────────────────────
+  // Cell always at dotsY0-83.467 to dotsY0-63.050
+  // Safe rect: dotsY0-81.866, h=17.215   write: dotsY0-77.259
+  if (fields.newDC !== undefined) {
+    page.drawRectangle({ x: 57, y: dotsY0 - 81.866, width: 67, height: 17.215, color: white, borderWidth: 0 });
+    rDraw(fmt(fields.newDC), dotsY0 - 77.259);
+  }
+
+  // ── (C) Total Prepaid Cell ────────────────────────────────────
+  // Cell always at dotsY0-135.108 to dotsY0-123.098
+  // Safe rect: dotsY0-133.507, h=8.809   write: dotsY0-133.103
+  page.drawRectangle({ x: 57, y: dotsY0 - 133.507, width: 67, height: 8.809, color: white, borderWidth: 0 });
+  rDraw(fmt(fields.newTotal), dotsY0 - 133.103);
+
+  // Export Page 1 only
+  const out = await PDFDocument.create();
+  const [p1] = await out.copyPages(doc, [0]);
+  out.addPage(p1);
+  return await out.save();
+}
+
+// ── PDF Edit — Button 1 ──────────────────────────────────────
+async function editPDF_B1(bytes, gst, newTotal) {
+  return applyEdits(bytes, { gst, newTotal });
+}
+
+// ── PDF Edit — Button 2 ──────────────────────────────────────
+async function editPDF_B2(bytes, newTAX, newDC, newTotal) {
+  return applyEdits(bytes, { gst: newTAX, newDC, newTotal });
+}
+
+// ── Download Trigger ─────────────────────────────────────────
+async function triggerDownload(which) {
+  const btn = document.getElementById(which === 'b1' ? 'b1DlBtn' : 'b2DlBtn');
+  const errId = which === 'b1' ? 'b1Err' : 'b2Err';
+
+  // For B2: PDF might still be rendering (pre-render was async)
+  // Try for up to 3s before giving up
+  if (which === 'b2' && !resultB2) {
+    btn.disabled = true;
+    btn.textContent = '⏳ PDF तैयार हो रही है...';
+    try {
+      // Re-render synchronously as fallback
+      if (!calcOut) { showErr(errId, 'पहले Calculate करो!'); btn.disabled = false; btn.textContent = '📄 PDF Edit & Download'; return; }
+      resultB2 = await editPDF_B2(pdfBytes.slice(0), calcOut.newTAX, calcOut.newDC, calcOut.newTotal);
+    } catch (e) {
+      showErr(errId, 'PDF edit में error: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '📄 PDF Edit & Download';
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = '📄 PDF Edit & Download';
+  }
+
+  const bytes = which === 'b1' ? resultB1 : resultB2;
+  if (!bytes) {
+    showErr(errId, 'PDF ready नहीं है। पहले Process करो।'); return;
+  }
+
+  const awb  = (which === 'b1' ? document.getElementById('b1AwbNum').textContent
+                                : (extracted ? extracted.awb : 'AWB'));
+  const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '_edited.pdf';
+
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Reset Button 2 ───────────────────────────────────────────
+function resetB2() {
+  hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('calcErr');
+  document.getElementById('inTarget').value = '';
+  document.getElementById('inOcdc').value   = '';
+  document.getElementById('inAdd').value    = '';
+  resultB2 = null; calcOut = null;
+  pickTab(activeTab);
+  document.getElementById('b2CalcCard')
+    .scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── Utility helpers ──────────────────────────────────────────
+function setInput(id, val) {
+  document.getElementById(id).value = val;
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = '⚠ ' + msg;
+  el.classList.remove('hidden');
+}
+
+/**
+ * Validates extracted data — throws a descriptive error if any
+ * required field is missing (null / NaN / 0).
+ */
+function checkExtracted(data) {
+  const missing = [];
+  if (!data.wc) missing.push('Weight Charge (y≈313)');
+  if (!data.da) missing.push('Due Agent (y≈225)');
+  if (!data.dc) missing.push('Due Carrier (y≈193)');
+  if (missing.length) {
+    throw new Error(
+      'ये values PDF से नहीं मिलीं:\n' + missing.join('\n') +
+      '\n\nसिर्फ IndiGo AWB PDF काम करती है।'
+    );
+  }
+}
+</script>
+</body>
+</html>
