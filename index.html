@@ -1004,23 +1004,25 @@ async function applyEdits(bytes, fields) {
 
   const RIGHT_EDGE = 106.754;
 
+  /** Sub-pixel snap — floating point artifacts rokta hai */
+  function snap(v) { return Math.round(v * 100) / 100; }
+
   /** Right-align text to RIGHT_EDGE */
   function rDraw(text, y) {
     const w = font.widthOfTextAtSize(text, 8);
-    page.drawText(text, { x: RIGHT_EDGE - w, y, size: 8, font, color: black });
+    page.drawText(text, { x: snap(RIGHT_EDGE - w), y: snap(y), size: 8, font, color: black });
   }
 
   // ── (A) TAX Cell ─────────────────────────────────────────────
-  // TWO SHORT RECTS (single tall rect always touches top border
-  // at sub-pixel level — "..." char box top is only 0.642pt below border)
-  //
-  // RECT 1: TAX value  (x=57-124)  writeY=dotsY0-3.5  gap-from-border≈4.6pt ✅
-  // RECT 2: "..." ink  (x=134-159.3) covers actual ink (y=dotsY0 to +1.4pt) ✅
+  // RECT 1: Small patch ONLY over dots (x=80 to x=105)
+  //         Left border (~x=57) aur Right border (~x=124) dono se
+  //         safe distance — koi border touch nahi hoga
+  // RECT 2: "..." ink area right side (x=134-159.3)
 
-  const taxWriteY = dotsY0 - 3.5;
-  page.drawRectangle({ x: 64,  y: taxWriteY - 0.5, width: 60.0, height: 9.0, color: white, borderWidth: 0 });
-  page.drawRectangle({ x: 134, y: dotsY0   - 0.5,  width: 25.3, height: 3.5, color: white, borderWidth: 0 });
-  page.drawText('TAX',         { x: 138, y: taxWriteY, size: 8, font, color: black });
+  const taxWriteY = snap(dotsY0 - 3.5);
+  page.drawRectangle({ x: snap(80),  y: snap(taxWriteY - 0.5), width: snap(25),   height: snap(9.0), color: white, borderWidth: 0, opacity: 1 });
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0   - 0.5),  width: snap(25.3), height: snap(3.5), color: white, borderWidth: 0, opacity: 1 });
+  page.drawText('TAX', { x: snap(85), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
