@@ -1013,16 +1013,17 @@ async function applyEdits(bytes, fields) {
     page.drawText(text, { x: snap(RIGHT_EDGE - w), y: snap(y), size: 8, font, color: black });
   }
 
-  // ── (A) TAX Cell ─────────────────────────────────────────────
-  // RECT 1: Small patch ONLY over dots (x=80 to x=105)
-  //         Left border (~x=57) aur Right border (~x=124) dono se
-  //         safe distance — koi border touch nahi hoga
-  // RECT 2: "..." ink area right side (x=134-159.3)
+  // ── (A) TAX Cell — Floating Patch v5.0 ───────────────────────
+  // RECT 1 (Floating Patch): x=80→98, floats in box center
+  //   y = taxWriteY + 5  → top border se safe gap
+  //   height = 6         → bottom border se safe gap
+  //   width = 18         → sirf dots cover, left/right border untouched
+  // RECT 2: "..." ink right side (x=134-159.3)
 
   const taxWriteY = snap(dotsY0 - 3.5);
-  page.drawRectangle({ x: snap(80),  y: snap(taxWriteY - 0.5), width: snap(25),   height: snap(9.0), color: white, borderWidth: 0, opacity: 1 });
-  page.drawRectangle({ x: snap(134), y: snap(dotsY0   - 0.5),  width: snap(25.3), height: snap(3.5), color: white, borderWidth: 0, opacity: 1 });
-  page.drawText('TAX', { x: snap(85), y: taxWriteY, size: 8, font, color: black });
+  page.drawRectangle({ x: snap(80),  y: snap(taxWriteY + 5),  width: snap(18),   height: snap(6),   color: white, borderWidth: 0, opacity: 1 });
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0   - 0.5), width: snap(25.3), height: snap(3.5), color: white, borderWidth: 0, opacity: 1 });
+  page.drawText('TAX', { x: snap(78), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
