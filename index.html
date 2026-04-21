@@ -970,7 +970,7 @@ async function extractAnchor(arrayBuffer) {
  *     Rect bottom   = dotsY0 - 2.5
  *     Rect top      = dotsY1 + 0.4     (0.24pt below top border → safe)
  *     Write TAX at  = dotsY0 - 1.661   (slightly below dots baseline)
- *     TAX label x   = 138 (fixed, never changes)
+ *     TAX label x   = 135 (v7.0: centered in label box, was 138)
  *     Right border  = 159.294 → "..." cover ends at x=159.3 max
  *
  *   Valuation "0.00" cell:
@@ -1054,8 +1054,13 @@ async function applyEdits(bytes, fields) {
   //                   7.0 height से top=dotsY0+3.0 → border से ≥1.5pt margin ✅
   //                   Existing value max cap-height ≈ dotsY0+2.1 → अभी भी cover ✅
   page.drawRectangle({ x: snap(58),  y: snap(taxWriteY - 0.5), width: snap(66.0), height: snap(7.0),  color: white, borderWidth: 0, opacity: 1 });
-  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 0.5),    width: snap(25.3), height: snap(3.5),  color: white, borderWidth: 0, opacity: 1 });
-  page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
+  // FIX v7.0: width 25.3→23.0 — right edge अब x=157.0 पर रुकती है।
+  // Right border centerline ≈ x=159.294, इसलिए 2.3pt का safe margin मिलता है।
+  // "..." ink max x ≈ 143 (8pt dots, 3 chars) — पूरी तरह covered रहेगी।
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 0.5),    width: snap(23.0), height: snap(3.5),  color: white, borderWidth: 0, opacity: 1 });
+  // FIX v7.0: TAX text x 138→135 — label box (x≈124 to x≈159.3, w≈35.3) में center।
+  // center = 124 + (35.3 - ~14pt) / 2 ≈ 134.6 → x=135 ✅
+  page.drawText('TAX', { x: snap(135), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
