@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pccs-awb-v5.1';
+const CACHE_NAME = 'pccs-awb-v5.2';
 const LOCAL_ASSETS = [
   './',
   './index.html',
