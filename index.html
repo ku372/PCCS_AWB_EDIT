@@ -1023,7 +1023,7 @@ async function applyEdits(bytes, fields) {
   const taxWriteY = snap(dotsY0 - 3.5);
   page.drawRectangle({ x: snap(80),  y: snap(taxWriteY + 5),  width: snap(18),   height: snap(6),   color: white, borderWidth: 0, opacity: 1 });
   page.drawRectangle({ x: snap(134), y: snap(dotsY0   - 0.5), width: snap(25.3), height: snap(3.5), color: white, borderWidth: 0, opacity: 1 });
-  page.drawText('TAX', { x: snap(78), y: taxWriteY, size: 8, font, color: black });
+  page.drawText('TAX', { x: snap(72), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
