@@ -993,65 +993,106 @@ async function extractAnchor(arrayBuffer) {
 async function applyEdits(bytes, fields) {
   // fields = { gst, newTotal, newDC (optional) }
   const { PDFDocument, rgb, StandardFonts } = PDFLib;
-  const doc   = await PDFDocument.load(bytes);
-  const page  = doc.getPages()[0];
-  const font  = await doc.embedFont(StandardFonts.Helvetica);
+
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  FIX #1 — updateMetadata: false                             ║
+  // ║  pdf-lib को metadata (CreationDate, ModDate, Producer)      ║
+  // ║  update करने से रोकता है। यह content stream को             ║
+  // ║  unnecessary re-parse से बचाता है।                          ║
+  // ╚══════════════════════════════════════════════════════════════╝
+  const doc  = await PDFDocument.load(bytes, { updateMetadata: false });
+  const page = doc.getPages()[0];
+  const font = await doc.embedFont(StandardFonts.Helvetica);
   const white = rgb(1, 1, 1);
   const black = rgb(0, 0, 0);
 
   // Dynamic anchor
   const { dotsY0, dotsY1 } = await extractAnchor(bytes.slice(0));
 
-  const RIGHT_EDGE = 106.754;
-
-  /** Sub-pixel snap — floating point artifacts rokta hai */
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  FIX #2 — Coordinate Snapping (CHECKPOINT 1)                ║
+  // ║  dotsY0 floating-point value जैसे 268.9760000000001 को      ║
+  // ║  2 decimal precision पर snap करता है।                       ║
+  // ║  यह white rect का border line पर sub-pixel overlap रोकता है ║
+  // ╚══════════════════════════════════════════════════════════════╝
   function snap(v) { return Math.round(v * 100) / 100; }
 
-  /** Right-align text to RIGHT_EDGE */
+  const RIGHT_EDGE = 106.754;
+
+  /** Right-align text to RIGHT_EDGE — coordinates snapped */
   function rDraw(text, y) {
     const w = font.widthOfTextAtSize(text, 8);
-    page.drawText(text, { x: snap(RIGHT_EDGE - w), y: snap(y), size: 8, font, color: black });
+    page.drawText(text, {
+      x    : snap(RIGHT_EDGE - w),
+      y    : snap(y),
+      size : 8,
+      font,
+      color: black
+      // NOTE: textBoundingBox / auto-wrap नहीं — fixed coords only
+    });
   }
 
-  // ── (A) TAX Cell — Floating Patch v5.0 ───────────────────────
-  // RECT 1 (Floating Patch): x=80→98, floats in box center
-  //   y = taxWriteY + 5  → top border se safe gap
-  //   height = 6         → bottom border se safe gap
-  //   width = 18         → sirf dots cover, left/right border untouched
-  // RECT 2: "..." ink right side (x=134-159.3)
+  // ── (A) TAX Cell ─────────────────────────────────────────────
+  // TWO SHORT RECTS (single tall rect always touches top border
+  // at sub-pixel level — "..." char box top is only 0.642pt below border)
+  //
+  // RECT 1: TAX value  (x=57-124)  writeY=dotsY0-3.5  gap-from-border≈4.6pt ✅
+  // RECT 2: "..." ink  (x=134-159.3) covers actual ink (y=dotsY0 to +1.4pt) ✅
 
   const taxWriteY = snap(dotsY0 - 3.5);
-  page.drawRectangle({ x: snap(80),  y: snap(taxWriteY + 5),  width: snap(18),   height: snap(6),   color: white, borderWidth: 0, opacity: 1 });
-  page.drawRectangle({ x: snap(134), y: snap(dotsY0   - 0.5), width: snap(25.3), height: snap(3.5), color: white, borderWidth: 0, opacity: 1 });
-  page.drawText('TAX', { x: snap(64), y: snap(taxWriteY + 1), size: 8, font, color: black });
+
+  // CHECKPOINT 2 — borderWidth: 0 और opacity: 1 explicit
+  // borderWidth:0 नहीं होगा तो pdf-lib default stroke draw करेगा
+  // opacity:1 नहीं होगा तो compositing artifact बन सकता है
+  //
+  // TOP-LEFT CUT FIX (v3):
+  //   x: 57 → 58   : left border (centerline ≈ x=57) की right-half अब safe है।
+  //                   1pt inset देने से left vertical stroke पर white paint नहीं होता।
+  //   width: 67→66  : right edge x=124 intact (57+67 = 58+66 = 124)
+  //   height: 9→7   : top edge dotsY0+5.0 → dotsY0+3.0 (2pt नीचे आई)
+  //                   TAX cell top border ≈ dotsY0+(4.5 to 5.5) range में है।
+  //                   7.0 height से top=dotsY0+3.0 → border से ≥1.5pt margin ✅
+  //                   Existing value max cap-height ≈ dotsY0+2.1 → अभी भी cover ✅
+  page.drawRectangle({ x: snap(58),  y: snap(taxWriteY - 0.5), width: snap(66.0), height: snap(7.0),  color: white, borderWidth: 0, opacity: 1 });
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 0.5),    width: snap(25.3), height: snap(3.5),  color: white, borderWidth: 0, opacity: 1 });
+  page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
-  // UNIVERSAL OFFSETS (verified: BLR AWB dotsY0=268.976, CCU AWB dotsY0=271.378)
-  // Cell borders always at dotsY0 ± 7.806pt (TAX bottom = Val top)
-  // Safe interior: 1.0pt margin from inner edge of each border
-  // rect_bot = dotsY0 - 18.215,  h = 8.809
-  page.drawRectangle({ x: 76, y: dotsY0 - 18.215, width: 40, height: 8.809, color: white, borderWidth: 0 });
+  page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
 
   // ── (B) Due Carrier Cell (only for B2) ───────────────────────
-  // Cell always at dotsY0-83.467 to dotsY0-63.050
-  // Safe rect: dotsY0-81.866, h=17.215   write: dotsY0-77.259
   if (fields.newDC !== undefined) {
-    page.drawRectangle({ x: 57, y: dotsY0 - 81.866, width: 67, height: 17.215, color: white, borderWidth: 0 });
-    rDraw(fmt(fields.newDC), dotsY0 - 77.259);
+    page.drawRectangle({ x: snap(57), y: snap(dotsY0 - 81.866), width: snap(67), height: snap(17.215), color: white, borderWidth: 0, opacity: 1 });
+    rDraw(fmt(fields.newDC), snap(dotsY0 - 77.259));
   }
 
   // ── (C) Total Prepaid Cell ────────────────────────────────────
-  // Cell always at dotsY0-135.108 to dotsY0-123.098
-  // Safe rect: dotsY0-133.507, h=8.809   write: dotsY0-133.103
-  page.drawRectangle({ x: 57, y: dotsY0 - 133.507, width: 67, height: 8.809, color: white, borderWidth: 0 });
-  rDraw(fmt(fields.newTotal), dotsY0 - 133.103);
+  page.drawRectangle({ x: snap(57), y: snap(dotsY0 - 133.507), width: snap(67), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
+  rDraw(fmt(fields.newTotal), snap(dotsY0 - 133.103));
 
-  // Export Page 1 only
-  const out = await PDFDocument.create();
-  const [p1] = await out.copyPages(doc, [0]);
-  out.addPage(p1);
-  return await out.save();
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  FIX #3 — In-Place Save, NO copyPages (CHECKPOINT 3)        ║
+  // ║                                                              ║
+  // ║  पुराना तरीका (BROKEN):                                      ║
+  // ║    PDFDocument.create() → copyPages() → addPage() → save()  ║
+  // ║                                                              ║
+  // ║  copyPages() cross-document resource dictionary clone करता  ║
+  // ║  है। इस process में pdf-lib सभी XObject refs, font refs,     ║
+  // ║  और graphic state operators re-resolve करता है। यही border  ║
+  // ║  lines तोड़ता था।                                            ║
+  // ║                                                              ║
+  // ║  नया तरीका (FIXED):                                          ║
+  // ║    Original document को in-place modify करो।                ║
+  // ║    Extra pages हों तो removePage() से हटाओ।                 ║
+  // ║    useObjectStreams: false — PDF objects को compress करके    ║
+  // ║    stream में pack नहीं करता। Original vector paths          ║
+  // ║    byte-for-byte intact रहते हैं।                            ║
+  // ╚══════════════════════════════════════════════════════════════╝
+  while (doc.getPageCount() > 1) {
+    doc.removePage(doc.getPageCount() - 1); // Extra pages (page 2+) remove
+  }
+  return await doc.save({ useObjectStreams: false });
 }
 
 // ── PDF Edit — Button 1 ──────────────────────────────────────
