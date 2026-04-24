@@ -410,6 +410,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 
     <div class="err-box hidden" id="b1Err"></div>
     <button class="btn btn-dl hidden" id="b1DlBtn" onclick="triggerDownload('b1')">⬇ PDF Download करो</button>
+    <button class="btn btn-dl hidden" id="b1ShareBtn" onclick="sharePDF('b1')" style="background: linear-gradient(135deg, #4a5568, #718096); margin-top:8px;">📤 Share PDF</button>
   </div>
 
   <!-- ════════════════════════════════════════════════════
@@ -513,6 +514,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 
     <!-- Download + Reset -->
     <button class="btn btn-dl hidden" id="b2DlBtn" onclick="triggerDownload('b2')">📄 PDF Edit &amp; Download</button>
+    <button class="btn btn-dl hidden" id="b2ShareBtn" onclick="sharePDF('b2')" style="background: linear-gradient(135deg, #4a5568, #718096); margin-top:8px;">📤 Share PDF</button>
     <button class="btn-rst hidden" id="b2RstBtn" onclick="resetB2()">🔄 Reset करें</button>
   </div>
 
@@ -1106,6 +1108,27 @@ async function editPDF_B2(bytes, newTAX, newDC, newTotal) {
 }
 
 // ── Download Trigger ─────────────────────────────────────────
+async function sharePDF(which) {
+  const bytes = which === 'b1' ? resultB1 : resultB2;
+  if (!bytes) {
+    const errId = which === 'b1' ? 'b1Err' : 'b2Err';
+    showErr(errId, 'PDF ready नहीं है।'); return;
+  }
+  const awb = (which === 'b1' ? document.getElementById('b1AwbNum').textContent : (extracted ? extracted.awb : 'AWB'));
+  const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '.pdf';
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const file = new File([blob], name, { type: 'application/pdf' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'PCCS AWB', text: `AWB: ${awb}` });
+    } catch (e) {
+      alert('Sharing failed: ' + e.message);
+    }
+  } else {
+    alert('Sharing not supported on this browser.');
+  }
+}
+
 async function triggerDownload(which) {
   const btn = document.getElementById(which === 'b1' ? 'b1DlBtn' : 'b2DlBtn');
   const errId = which === 'b1' ? 'b1Err' : 'b2Err';
@@ -1136,7 +1159,7 @@ async function triggerDownload(which) {
 
   const awb  = (which === 'b1' ? document.getElementById('b1AwbNum').textContent
                                 : (extracted ? extracted.awb : 'AWB'));
-  const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '_edited.pdf';
+  const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '.pdf';
 
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const url  = URL.createObjectURL(blob);
