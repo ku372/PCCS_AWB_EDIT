@@ -683,7 +683,8 @@ document.getElementById('fileInput').addEventListener('change', async e => {
   if (!file) return;
 
   // Read raw bytes
-  pdfBytes  = await file.arrayBuffer();
+  const buffer = await file.arrayBuffer();
+  pdfBytes  = buffer.slice(0); // Keep one master copy that is NEVER touched
   resultB1  = null;
   resultB2  = null;
   extracted = null;
@@ -811,7 +812,7 @@ async function handleB1() {
   try {
     // Step 1 — Extract
     setStep(1, 'going', 'PDF se data extract हो रहा है...');
-    const data = await extractAWB(pdfBytes);
+    const data = await extractAWB(pdfBytes.slice(0));
     checkExtracted(data);  // throws if missing
     setStep(1, 'done', 'Data extract हुआ ✓');
 
@@ -839,7 +840,7 @@ async function handleB1() {
 
     // Step 3 — Edit PDF
     setStep(3, 'going', 'PDF edit हो रही है...');
-    resultB1 = await editPDF_B1(pdfBytes, gst, newTotal);
+    resultB1 = await editPDF_B1(pdfBytes.slice(0), gst, newTotal);
     setStep(3, 'done', 'PDF edited ✓');
 
     // Step 4 — Ready
@@ -880,7 +881,7 @@ async function handleB2() {
   document.getElementById('btnB2').disabled = true;
 
   try {
-    const data = await extractAWB(pdfBytes);
+    const data = await extractAWB(pdfBytes.slice(0));
     checkExtracted(data);
 
     // Store extracted data
@@ -1017,7 +1018,7 @@ function doCalc() {
 
   // Pre-render the edited PDF in background (non-blocking)
   resultB2 = null;
-  editPDF_B2(pdfBytes, newTAX, newDC, newTotal)
+  editPDF_B2(pdfBytes.slice(0), newTAX, newDC, newTotal)
     .then(bytes => { resultB2 = bytes; })
     .catch(() => { resultB2 = null; });
 
@@ -1210,7 +1211,7 @@ async function triggerDownload(which) {
     try {
       // Re-render synchronously as fallback
       if (!calcOut) { showErr(errId, 'पहले Calculate करो!'); btn.disabled = false; btn.textContent = '📄 PDF Edit & Download'; return; }
-      resultB2 = await editPDF_B2(pdfBytes, calcOut.newTAX, calcOut.newDC, calcOut.newTotal);
+      resultB2 = await editPDF_B2(pdfBytes.slice(0), calcOut.newTAX, calcOut.newDC, calcOut.newTotal);
     } catch (e) {
       showErr(errId, 'PDF edit में error: ' + e.message);
       btn.disabled = false;
