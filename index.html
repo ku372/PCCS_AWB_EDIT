@@ -582,7 +582,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // ── App State ────────────────────────────────────────────────
-let pdfBytes       = null;   // raw ArrayBuffer of uploaded PDF
+let pdfBytes       = null;   // Uint8Array — deep copy of uploaded PDF
 let resultB1       = null;   // Uint8Array — edited PDF from Button 1
 let resultB2       = null;   // Uint8Array — edited PDF from Button 2
 let extracted      = null;   // { awb, wc, da, dc } from extraction
@@ -684,7 +684,7 @@ document.getElementById('fileInput').addEventListener('change', async e => {
 
   // Read raw bytes
   const buffer = await file.arrayBuffer();
-  pdfBytes  = buffer.slice(0); // Keep one master copy that is NEVER touched
+  pdfBytes  = new Uint8Array(Array.from(new Uint8Array(buffer)));
   resultB1  = null;
   resultB2  = null;
   extracted = null;
@@ -736,7 +736,8 @@ show('historyCard');
  * This ensures that if a PDF has been previously edited (with an
  * overlaid value at a slightly lower y), we always get the original.
  */
-async function extractAWB(arrayBuffer) {
+async function extractAWB(uint8Array) {
+  const arrayBuffer = uint8Array.buffer.slice(0);
   const pdf  = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const page = await pdf.getPage(1);
   const tc   = await page.getTextContent();
@@ -812,7 +813,7 @@ async function handleB1() {
   try {
     // Step 1 — Extract
     setStep(1, 'going', 'PDF se data extract हो रहा है...');
-    const data = await extractAWB(pdfBytes.slice(0));
+    const data = await extractAWB(new Uint8Array(pdfBytes));
     checkExtracted(data);  // throws if missing
     setStep(1, 'done', 'Data extract हुआ ✓');
 
@@ -840,7 +841,7 @@ async function handleB1() {
 
     // Step 3 — Edit PDF
     setStep(3, 'going', 'PDF edit हो रही है...');
-    resultB1 = await editPDF_B1(pdfBytes.slice(0), gst, newTotal);
+    resultB1 = await editPDF_B1(new Uint8Array(pdfBytes), gst, newTotal);
     setStep(3, 'done', 'PDF edited ✓');
 
     // Step 4 — Ready
@@ -881,7 +882,7 @@ async function handleB2() {
   document.getElementById('btnB2').disabled = true;
 
   try {
-    const data = await extractAWB(pdfBytes.slice(0));
+    const data = await extractAWB(new Uint8Array(pdfBytes));
     checkExtracted(data);
 
     // Store extracted data
@@ -1018,9 +1019,9 @@ function doCalc() {
 
   // Pre-render the edited PDF in background (non-blocking)
   resultB2 = null;
-  editPDF_B2(pdfBytes.slice(0), newTAX, newDC, newTotal)
+  editPDF_B2(new Uint8Array(pdfBytes), newTAX, newDC, newTotal)
     .then(bytes => { resultB2 = bytes; })
-    .catch(() => { resultB2 = null; });
+    .catch(() => { resultB uma = null; });
 
   setTimeout(() => {
     document.getElementById('b2Result')
@@ -1046,7 +1047,8 @@ function doCalc() {
  * Returns: { dotsY0, dotsY1 } — baseline and top of "..." char box
  * Falls back to known values if "..." not found.
  */
-async function extractAnchor(arrayBuffer) {
+async function extractAnchor(uint8Array) {
+  const arrayBuffer = uint8Array.buffer.slice(0);
   const pdf  = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const page = await pdf.getPage(1);
   const tc   = await page.getTextContent();
@@ -1211,7 +1213,7 @@ async function triggerDownload(which) {
     try {
       // Re-render synchronously as fallback
       if (!calcOut) { showErr(errId, 'पहले Calculate करो!'); btn.disabled = false; btn.textContent = '📄 PDF Edit & Download'; return; }
-      resultB2 = await editPDF_B2(pdfBytes.slice(0), calcOut.newTAX, calcOut.newDC, calcOut.newTotal);
+      resultB2 = await editPDF_B2(new Uint8Array(pdfBytes), calcOut.newTAX, calcOut.newDC, calcOut.newTotal);
     } catch (e) {
       showErr(errId, 'PDF edit में error: ' + e.message);
       btn.disabled = false;
