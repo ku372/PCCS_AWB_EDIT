@@ -684,7 +684,7 @@ document.getElementById('fileInput').addEventListener('change', async e => {
 
   // Read raw bytes
   const buffer = await file.arrayBuffer();
-  pdfBytes  = new Uint8Array(Array.from(new Uint8Array(buffer)));
+  pdfBytes  = new Uint8Array(buffer);
   resultB1  = null;
   resultB2  = null;
   extracted = null;
