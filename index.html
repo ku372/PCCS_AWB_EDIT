@@ -16,40 +16,16 @@
 /* ── Root Variables ─────────────────────────────────────────── */
 :root {
   --bg:       #0a0e1a;
-  --bg-rgb:   10, 14, 26;
   --card:     #111827;
-  --card-rgb: 17, 24, 39;
   --card2:    #1a2235;
-  --card2-rgb: 26, 34, 53;
   --accent:   #00c6ff;
   --accent2:  #f97316;
   --green:    #22c55e;
   --red:      #f87171;
   --border:   #1e3a5f;
-  --border-rgb: 30, 58, 95;
   --text:     #e2e8f0;
   --muted:    #64748b;
   --input-bg: #0d1526;
-  --input-bg-rgb: 13, 21, 38;
-}
-
-.light-mode {
-  --bg:       #f8fafc;
-  --bg-rgb:   248, 250, 252;
-  --card:     #ffffff;
-  --card-rgb: 255, 255, 255;
-  --card2:    #f1f5f9;
-  --card2-rgb: 241, 245, 249;
-  --accent:   #009ec7;
-  --accent2:  #ea580c;
-  --green:    #16a34a;
-  --red:      #dc2626;
-  --border:   #e2e8f0;
-  --border-rgb: 226, 232, 240;
-  --text:     #0f172a;
-  --muted:    #64748b;
-  --input-bg: #f1f5f9;
-  --input-bg-rgb: 241, 245, 249;
 }
 
 /* ── Reset ──────────────────────────────────────────────────── */
@@ -70,7 +46,6 @@ body {
     radial-gradient(ellipse at 15% 10%, rgba(0,198,255,0.07) 0%, transparent 55%),
     radial-gradient(ellipse at 85% 85%, rgba(249,115,22,0.07) 0%, transparent 55%);
   overflow-x: hidden;
-  transition: background 0.3s ease, color 0.3s ease;
 }
 
 .container { max-width: 480px; margin: 0 auto; }
@@ -110,13 +85,10 @@ body {
 
 /* ── Card ───────────────────────────────────────────────────── */
 .card {
-  background: rgba(var(--card-rgb), 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--border-rgb), 0.3);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 14px; padding: 16px;
   margin-bottom: 14px;
-  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .card-title {
@@ -173,19 +145,13 @@ body {
 
 .main-btn {
   padding: 14px 10px; border-radius: 12px;
-  border: 1px solid rgba(var(--border-rgb), 0.3);
-  background: rgba(var(--card-rgb), 0.6);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid var(--border); background: var(--card);
   color: var(--text); cursor: pointer;
   font-family: 'Noto Sans Devanagari', sans-serif;
-  transition: all 0.2s ease; text-align: center; line-height: 1;
+  transition: all 0.15s; text-align: center; line-height: 1;
 }
-.main-btn:not(:disabled):hover {
-  background: rgba(var(--card-rgb), 0.8);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
+.main-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.main-btn:not(:disabled):active { transform: scale(0.97); }
 
 .main-btn .btn-icon { font-size: 22px; display: block; margin-bottom: 7px; }
 .main-btn .btn-label { font-size: 0.8rem; font-weight: 600; display: block; }
@@ -300,7 +266,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   width: 100%; padding: 14px; border-radius: 10px; border: none;
   cursor: pointer; font-family: 'Rajdhani', sans-serif;
   font-size: 1.08rem; font-weight: 700; letter-spacing: 1px;
-  transition: all 0.2s ease;
+  transition: all 0.15s;
 }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
@@ -373,10 +339,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 
   <!-- Header -->
   <div class="header">
-    <div style="display:flex; justify-content:center; align-items:center; gap:15px; position:relative;">
-      <h1 style="margin:0;">✈ PCCS AWB TOOL</h1>
-      <button id="themeToggle" style="background:none; border:none; cursor:pointer; font-size:1.4rem; z-index:10;" onclick="toggleTheme()">🌙</button>
-    </div>
+    <h1>✈ PCCS AWB TOOL</h1>
     <p>IndiGo AWB · GST Calculator · PDF Editor · v2.0</p>
   </div>
 
@@ -417,15 +380,6 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
     </button>
   </div>
 
-  <!-- ── Recent History ── -->
-  <div class="card hidden" id="historyCard">
-    <div class="card-title">Recent AWBs</div>
-    <div id="historyList" style="display:flex; flex-direction:column; gap:8px;"></div>
-    <button class="btn-rst" style="margin-top:12px; width:auto; padding:4px 8px; float:right;" onclick="clearHistory()">Clear All</button>
-    <div style="clear:both;"></div>
-  </div>
-
-
   <!-- ════════════════════════════════════════════════════
        BUTTON 1 SECTION
        ════════════════════════════════════════════════════ -->
@@ -456,7 +410,6 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 
     <div class="err-box hidden" id="b1Err"></div>
     <button class="btn btn-dl hidden" id="b1DlBtn" onclick="triggerDownload('b1')">⬇ PDF Download करो</button>
-    <button class="btn btn-dl hidden" id="b1ShareBtn" onclick="sharePDF('b1')" style="background: linear-gradient(135deg, #4a5568, #718096); margin-top:8px;">📤 Share PDF</button>
   </div>
 
   <!-- ════════════════════════════════════════════════════
@@ -560,7 +513,6 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 
     <!-- Download + Reset -->
     <button class="btn btn-dl hidden" id="b2DlBtn" onclick="triggerDownload('b2')">📄 PDF Edit &amp; Download</button>
-    <button class="btn btn-dl hidden" id="b2ShareBtn" onclick="sharePDF('b2')" style="background: linear-gradient(135deg, #4a5568, #718096); margin-top:8px;">📤 Share PDF</button>
     <button class="btn-rst hidden" id="b2RstBtn" onclick="resetB2()">🔄 Reset करें</button>
   </div>
 
@@ -582,65 +534,13 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // ── App State ────────────────────────────────────────────────
-let pdfBytes       = null;   // Uint8Array — deep copy of uploaded PDF
+let pdfBytes       = null;   // raw ArrayBuffer of uploaded PDF
 let resultB1       = null;   // Uint8Array — edited PDF from Button 1
 let resultB2       = null;   // Uint8Array — edited PDF from Button 2
 let extracted      = null;   // { awb, wc, da, dc } from extraction
 let calcOut        = null;   // { assume, newTAX, newDC, newTotal, ... }
 let activeTab      = 1;
 let deferredPrompt = null;
-
-// ── Theme Logic ──────────────────────────────────────────────────
-function toggleTheme() {
-  const isLight = document.body.classList.toggle('light-mode');
-  localStorage.setItem('pccs_theme', isLight ? 'light' : 'dark');
-  document.getElementById('themeToggle').textContent = isLight ? '🌙' : '☀️';
-}
-
-function initTheme() {
-  const saved = localStorage.getItem('pccs_theme');
-  if (saved === 'light') {
-    document.body.classList.add('light-mode');
-    document.getElementById('themeToggle').textContent = '🌙';
-  } else {
-    document.getElementById('themeToggle').textContent = '☀️';
-  }
-}
-
-// ── History Logic ────────────────────────────────────────────────
-function saveToHistory(entry) {
-  let history = JSON.parse(localStorage.getItem('pccs_awb_history') || '[]');
-  // Remove duplicate AWB if exists
-  history = history.filter(item => item.awb !== entry.awb);
-  history.unshift(entry);
-  history = history.slice(0, 5);
-  localStorage.setItem('pccs_awb_history', JSON.stringify(history));
-  renderHistory();
-}
-
-function renderHistory() {
-  const history = JSON.parse(localStorage.getItem('pccs_awb_history') || '[]');
-  const list = document.getElementById('historyList');
-  if (!list) return;
-
-  if (history.length === 0) {
-    list.innerHTML = '<div style="font-size:0.75rem; color:var(--muted); text-align:center;">No recent AWBs</div>';
-    return;
-  }
-
-  list.innerHTML = history.map(item => `
-    <div class="res-row" style="background:rgba(var(--card2-rgb), 0.5); cursor:pointer;" onclick="alert('AWB: ${item.awb}\\nTotal: ₹${item.total}\\nDate: ${item.date}')">
-      <span class="res-lbl">${item.date}</span>
-      <span class="res-val" style="font-size:0.9rem;">${item.awb} <span style="color:var(--green); margin-left:8px;">₹${fmt(item.total)}</span></span>
-    </div>
-  `).join('');
-}
-
-function clearHistory() {
-  localStorage.removeItem('pccs_awb_history');
-  renderHistory();
-}
-
 
 // ── PWA Install ──────────────────────────────────────────────
 window.addEventListener('beforeinstallprompt', e => {
@@ -683,8 +583,7 @@ document.getElementById('fileInput').addEventListener('change', async e => {
   if (!file) return;
 
   // Read raw bytes
-  const buffer = await file.arrayBuffer();
-  pdfBytes  = new Uint8Array(buffer);
+  pdfBytes  = await file.arrayBuffer();
   resultB1  = null;
   resultB2  = null;
   extracted = null;
@@ -713,12 +612,6 @@ document.getElementById('fileInput').addEventListener('change', async e => {
   e.target.value = '';
 });
 
-// Initialize UI state
-initTheme();
-renderHistory();
-show('historyCard');
-
-
 // ── PDF Extraction ───────────────────────────────────────────
 /**
  * Extracts AWB financial values from an IndiGo AWB PDF (Page 1).
@@ -736,9 +629,9 @@ show('historyCard');
  * This ensures that if a PDF has been previously edited (with an
  * overlaid value at a slightly lower y), we always get the original.
  */
-async function extractAWB(uint8Array) {
-  const data = await pdfjsLib.getDocument({ data: uint8Array.slice(0) }).promise;
-  const page = await data.getPage(1);
+async function extractAWB(arrayBuffer) {
+  const pdf  = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const page = await pdf.getPage(1);
   const tc   = await page.getTextContent();
   const items = tc.items;
 
@@ -881,7 +774,7 @@ async function handleB2() {
   document.getElementById('btnB2').disabled = true;
 
   try {
-    const data = await extractAWB(new Uint8Array(pdfBytes));
+    const data = await extractAWB(pdfBytes.slice(0));
     checkExtracted(data);
 
     // Store extracted data
@@ -1012,15 +905,13 @@ function doCalc() {
 
   show('b2Result');  addClass('b2Result', 'anim');
   show('b2DlBtn');
-  show('b2ShareBtn');
   show('b2RstBtn');
-
 
   // Pre-render the edited PDF in background (non-blocking)
   resultB2 = null;
   editPDF_B2(pdfBytes.slice(0), newTAX, newDC, newTotal)
     .then(bytes => { resultB2 = bytes; })
-    .catch(() => { resultB uma = null; });
+    .catch(() => { resultB2 = null; });
 
   setTimeout(() => {
     document.getElementById('b2Result')
@@ -1046,8 +937,7 @@ function doCalc() {
  * Returns: { dotsY0, dotsY1 } — baseline and top of "..." char box
  * Falls back to known values if "..." not found.
  */
-async function extractAnchor(uint8Array) {
-  const arrayBuffer = uint8Array.buffer.slice(0);
+async function extractAnchor(arrayBuffer) {
   const pdf  = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const page = await pdf.getPage(1);
   const tc   = await page.getTextContent();
@@ -1103,21 +993,43 @@ async function extractAnchor(uint8Array) {
 async function applyEdits(bytes, fields) {
   // fields = { gst, newTotal, newDC (optional) }
   const { PDFDocument, rgb, StandardFonts } = PDFLib;
-  const doc   = await PDFDocument.load(bytes);
-  const page  = doc.getPages()[0];
-  const font  = await doc.embedFont(StandardFonts.Helvetica);
+
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  FIX #1 — updateMetadata: false                             ║
+  // ║  pdf-lib को metadata (CreationDate, ModDate, Producer)      ║
+  // ║  update करने से रोकता है। यह content stream को             ║
+  // ║  unnecessary re-parse से बचाता है।                          ║
+  // ╚══════════════════════════════════════════════════════════════╝
+  const doc  = await PDFDocument.load(bytes, { updateMetadata: false });
+  const page = doc.getPages()[0];
+  const font = await doc.embedFont(StandardFonts.Helvetica);
   const white = rgb(1, 1, 1);
   const black = rgb(0, 0, 0);
 
   // Dynamic anchor
-  const { dotsY0, dotsY1 } = await extractAnchor(bytes);
+  const { dotsY0, dotsY1 } = await extractAnchor(bytes.slice(0));
+
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  FIX #2 — Coordinate Snapping (CHECKPOINT 1)                ║
+  // ║  dotsY0 floating-point value जैसे 268.9760000000001 को      ║
+  // ║  2 decimal precision पर snap करता है।                       ║
+  // ║  यह white rect का border line पर sub-pixel overlap रोकता है ║
+  // ╚══════════════════════════════════════════════════════════════╝
+  function snap(v) { return Math.round(v * 100) / 100; }
 
   const RIGHT_EDGE = 106.754;
 
-  /** Right-align text to RIGHT_EDGE */
+  /** Right-align text to RIGHT_EDGE — coordinates snapped */
   function rDraw(text, y) {
     const w = font.widthOfTextAtSize(text, 8);
-    page.drawText(text, { x: RIGHT_EDGE - w, y, size: 8, font, color: black });
+    page.drawText(text, {
+      x    : snap(RIGHT_EDGE - w),
+      y    : snap(y),
+      size : 8,
+      font,
+      color: black
+      // NOTE: textBoundingBox / auto-wrap नहीं — fixed coords only
+    });
   }
 
   // ── (A) TAX Cell ─────────────────────────────────────────────
@@ -1127,38 +1039,60 @@ async function applyEdits(bytes, fields) {
   // RECT 1: TAX value  (x=57-124)  writeY=dotsY0-3.5  gap-from-border≈4.6pt ✅
   // RECT 2: "..." ink  (x=134-159.3) covers actual ink (y=dotsY0 to +1.4pt) ✅
 
-  const taxWriteY = dotsY0 - 3.5;
-  page.drawRectangle({ x: 57,  y: taxWriteY - 0.5, width: 67.0, height: 9.0, color: white, borderWidth: 0 });
-  page.drawRectangle({ x: 134, y: dotsY0   - 0.5,  width: 25.3, height: 3.5, color: white, borderWidth: 0 });
-  page.drawText('TAX',         { x: 138, y: taxWriteY, size: 8, font, color: black });
+  const taxWriteY = snap(dotsY0 - 3.5);
+
+  // CHECKPOINT 2 — borderWidth: 0 और opacity: 1 explicit
+  // borderWidth:0 नहीं होगा तो pdf-lib default stroke draw करेगा
+  // opacity:1 नहीं होगा तो compositing artifact बन सकता है
+  //
+  // TOP-LEFT CUT FIX (v3):
+  //   x: 57 → 58   : left border (centerline ≈ x=57) की right-half अब safe है।
+  //                   1pt inset देने से left vertical stroke पर white paint नहीं होता।
+  //   width: 67→66  : right edge x=124 intact (57+67 = 58+66 = 124)
+  //   height: 9→7   : top edge dotsY0+5.0 → dotsY0+3.0 (2pt नीचे आई)
+  //                   TAX cell top border ≈ dotsY0+(4.5 to 5.5) range में है।
+  //                   7.0 height से top=dotsY0+3.0 → border से ≥1.5pt margin ✅
+  //                   Existing value max cap-height ≈ dotsY0+2.1 → अभी भी cover ✅
+  page.drawRectangle({ x: snap(58),  y: snap(taxWriteY - 0.5), width: snap(66.0), height: snap(7.0),  color: white, borderWidth: 0, opacity: 1 });
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 0.5),    width: snap(25.3), height: snap(3.5),  color: white, borderWidth: 0, opacity: 1 });
+  page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
-  // UNIVERSAL OFFSETS (verified: BLR AWB dotsY0=268.976, CCU AWB dotsY0=271.378)
-  // Cell borders always at dotsY0 ± 7.806pt (TAX bottom = Val top)
-  // Safe interior: 1.0pt margin from inner edge of each border
-  // rect_bot = dotsY0 - 18.215,  h = 8.809
-  page.drawRectangle({ x: 76, y: dotsY0 - 18.215, width: 40, height: 8.809, color: white, borderWidth: 0 });
+  page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
 
   // ── (B) Due Carrier Cell (only for B2) ───────────────────────
-  // Cell always at dotsY0-83.467 to dotsY0-63.050
-  // Safe rect: dotsY0-81.866, h=17.215   write: dotsY0-77.259
   if (fields.newDC !== undefined) {
-    page.drawRectangle({ x: 57, y: dotsY0 - 81.866, width: 67, height: 17.215, color: white, borderWidth: 0 });
-    rDraw(fmt(fields.newDC), dotsY0 - 77.259);
+    page.drawRectangle({ x: snap(57), y: snap(dotsY0 - 81.866), width: snap(67), height: snap(17.215), color: white, borderWidth: 0, opacity: 1 });
+    rDraw(fmt(fields.newDC), snap(dotsY0 - 77.259));
   }
 
   // ── (C) Total Prepaid Cell ────────────────────────────────────
-  // Cell always at dotsY0-135.108 to dotsY0-123.098
-  // Safe rect: dotsY0-133.507, h=8.809   write: dotsY0-133.103
-  page.drawRectangle({ x: 57, y: dotsY0 - 133.507, width: 67, height: 8.809, color: white, borderWidth: 0 });
-  rDraw(fmt(fields.newTotal), dotsY0 - 133.103);
+  page.drawRectangle({ x: snap(57), y: snap(dotsY0 - 133.507), width: snap(67), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
+  rDraw(fmt(fields.newTotal), snap(dotsY0 - 133.103));
 
-  // Export Page 1 only
-  const out = await PDFDocument.create();
-  const [p1] = await out.copyPages(doc, [0]);
-  out.addPage(p1);
-  return await out.save();
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  FIX #3 — In-Place Save, NO copyPages (CHECKPOINT 3)        ║
+  // ║                                                              ║
+  // ║  पुराना तरीका (BROKEN):                                      ║
+  // ║    PDFDocument.create() → copyPages() → addPage() → save()  ║
+  // ║                                                              ║
+  // ║  copyPages() cross-document resource dictionary clone करता  ║
+  // ║  है। इस process में pdf-lib सभी XObject refs, font refs,     ║
+  // ║  और graphic state operators re-resolve करता है। यही border  ║
+  // ║  lines तोड़ता था।                                            ║
+  // ║                                                              ║
+  // ║  नया तरीका (FIXED):                                          ║
+  // ║    Original document को in-place modify करो।                ║
+  // ║    Extra pages हों तो removePage() से हटाओ।                 ║
+  // ║    useObjectStreams: false — PDF objects को compress करके    ║
+  // ║    stream में pack नहीं करता। Original vector paths          ║
+  // ║    byte-for-byte intact रहते हैं।                            ║
+  // ╚══════════════════════════════════════════════════════════════╝
+  while (doc.getPageCount() > 1) {
+    doc.removePage(doc.getPageCount() - 1); // Extra pages (page 2+) remove
+  }
+  return await doc.save({ useObjectStreams: false });
 }
 
 // ── PDF Edit — Button 1 ──────────────────────────────────────
@@ -1172,34 +1106,6 @@ async function editPDF_B2(bytes, newTAX, newDC, newTotal) {
 }
 
 // ── Download Trigger ─────────────────────────────────────────
-async function sharePDF(which) {
-  const btn = document.getElementById(which === 'b1' ? 'b1ShareBtn' : 'b2ShareBtn');
-  const errId = which === 'b1' ? 'b1Err' : 'b2Err';
-
-  const bytes = which === 'b1' ? resultB1 : resultB2;
-  if (!bytes) {
-    showErr(errId, 'PDF ready नहीं है। पहले Process करो।'); return;
-  }
-
-  const awb = (which === 'b1' ? document.getElementById('b1AwbNum').textContent : (extracted ? extracted.awb : 'AWB'));
-  const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '_edited.pdf';
-  const blob = new Blob([bytes], { type: 'application/pdf' });
-
-  if (navigator.canShare && navigator.canShare({ files: [new File([blob], name, { type: 'application/pdf' })] })) {
-    try {
-      await navigator.share({
-        files: [new File([blob], name, { type: 'application/pdf' })],
-        title: 'PCCS Edited AWB',
-        text: `Sharing edited AWB: ${awb}`
-      });
-    } catch (e) {
-      showErr(errId, 'Sharing failed: ' + e.message);
-    }
-  } else {
-    alert('Sharing not supported on this browser. Please download and share manually.');
-  }
-}
-
 async function triggerDownload(which) {
   const btn = document.getElementById(which === 'b1' ? 'b1DlBtn' : 'b2DlBtn');
   const errId = which === 'b1' ? 'b1Err' : 'b2Err';
@@ -1230,16 +1136,7 @@ async function triggerDownload(which) {
 
   const awb  = (which === 'b1' ? document.getElementById('b1AwbNum').textContent
                                 : (extracted ? extracted.awb : 'AWB'));
-  const total = (which === 'b1' ? document.getElementById('b1Total').textContent.replace('₹ ', '').replace(/,/g, '')
-                                : (calcOut ? calcOut.newTotal : '0'));
   const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '_edited.pdf';
-
-  // Save to history
-  saveToHistory({
-    awb: awb,
-    total: total,
-    date: new Date().toLocaleString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})
-  });
 
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const url  = URL.createObjectURL(blob);
