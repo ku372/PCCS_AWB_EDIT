@@ -410,7 +410,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 
     <div class="err-box hidden" id="b1Err"></div>
     <button class="btn btn-dl hidden" id="b1DlBtn" onclick="triggerDownload('b1')">⬇ PDF Download करो</button>
-    <button class="btn btn-dl hidden" id="b1ShareBtn" onclick="sharePDF('b1')" style="background: linear-gradient(135deg, #4a5568, #718096); margin-top:8px;">📤 Share PDF</button>
+    <button class="btn btn-dl hidden" id="b1ShareBtn" onclick="triggerShare('b1')" style="background:var(--green);margin-top:0.5rem;">📤 Share PDF</button>
   </div>
 
   <!-- ════════════════════════════════════════════════════
@@ -514,7 +514,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 
     <!-- Download + Reset -->
     <button class="btn btn-dl hidden" id="b2DlBtn" onclick="triggerDownload('b2')">📄 PDF Edit &amp; Download</button>
-    <button class="btn btn-dl hidden" id="b2ShareBtn" onclick="sharePDF('b2')" style="background: linear-gradient(135deg, #4a5568, #718096); margin-top:8px;">📤 Share PDF</button>
+    <button class="btn btn-dl hidden" id="b2ShareBtn" onclick="triggerShare('b2')" style="background:var(--green);margin-top:0.5rem;">📤 Share PDF</button>
     <button class="btn-rst hidden" id="b2RstBtn" onclick="resetB2()">🔄 Reset करें</button>
   </div>
 
@@ -700,7 +700,7 @@ async function handleB1() {
   show('b1Wrap');  addClass('b1Wrap', 'anim');
   hide('b2Wrap');
   show('b1Progress');
-  hide('b1Details'); hide('b1Err'); hide('b1DlBtn');
+  hide('b1Details'); hide('b1Err'); hide('b1DlBtn'); hide('b1ShareBtn');
   resetB1Steps();
   resultB1 = null;
 
@@ -742,7 +742,7 @@ async function handleB1() {
     setStep(4, 'going', 'Download ready हो रहा है...');
     await delay(250);
     setStep(4, 'done', 'Download Ready! ✓');
-    show('b1DlBtn');
+    show('b1DlBtn'); show('b1ShareBtn');
 
   } catch (err) {
     const el = document.getElementById('b1Err');
@@ -768,7 +768,7 @@ async function handleB2() {
   show('b2Wrap');  addClass('b2Wrap', 'anim');
   hide('b1Wrap');
   hide('b2AutoFill'); hide('b2CalcCard'); hide('b2Result');
-  hide('b2Err');   hide('b2DlBtn');   hide('b2RstBtn');
+  hide('b2Err');   hide('b2DlBtn');   hide('b2RstBtn');   hide('b2ShareBtn');
   show('b2Extracting');
   resultB2 = null; calcOut = null;
 
@@ -834,7 +834,7 @@ function pickTab(n) {
     document.getElementById('m' + i).classList.toggle('visible', i === n);
   }
   // Clear previous result when method changes
-  hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('calcErr');
+  hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('b2ShareBtn'); hide('calcErr');
   resultB2 = null; calcOut = null;
 }
 
@@ -847,7 +847,7 @@ function pickTab(n) {
     const dc = parseFloat(document.getElementById('b2Dc').value) || 0;
     setInput('b2Cp', r2(wc + da + dc));
     // Invalidate any previous result
-    hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn');
+    hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('b2ShareBtn');
     resultB2 = null; calcOut = null;
   });
 });
@@ -907,6 +907,7 @@ function doCalc() {
 
   show('b2Result');  addClass('b2Result', 'anim');
   show('b2DlBtn');
+  show('b2ShareBtn');
   show('b2RstBtn');
 
   // Pre-render the edited PDF in background (non-blocking)
@@ -1108,27 +1109,6 @@ async function editPDF_B2(bytes, newTAX, newDC, newTotal) {
 }
 
 // ── Download Trigger ─────────────────────────────────────────
-async function sharePDF(which) {
-  const bytes = which === 'b1' ? resultB1 : resultB2;
-  if (!bytes) {
-    const errId = which === 'b1' ? 'b1Err' : 'b2Err';
-    showErr(errId, 'PDF ready नहीं है।'); return;
-  }
-  const awb = (which === 'b1' ? document.getElementById('b1AwbNum').textContent : (extracted ? extracted.awb : 'AWB'));
-  const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '.pdf';
-  const blob = new Blob([bytes], { type: 'application/pdf' });
-  const file = new File([blob], name, { type: 'application/pdf' });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: 'PCCS AWB', text: `AWB: ${awb}` });
-    } catch (e) {
-      alert('Sharing failed: ' + e.message);
-    }
-  } else {
-    alert('Sharing not supported on this browser.');
-  }
-}
-
 async function triggerDownload(which) {
   const btn = document.getElementById(which === 'b1' ? 'b1DlBtn' : 'b2DlBtn');
   const errId = which === 'b1' ? 'b1Err' : 'b2Err';
@@ -1159,7 +1139,7 @@ async function triggerDownload(which) {
 
   const awb  = (which === 'b1' ? document.getElementById('b1AwbNum').textContent
                                 : (extracted ? extracted.awb : 'AWB'));
-  const name = awb.replace(/[^a-zA-Z0-9-]/g, '-') + '.pdf';
+  const name = awb + '.pdf';
 
   const blob = new Blob([bytes], { type: 'application/pdf' });
   const url  = URL.createObjectURL(blob);
@@ -1171,9 +1151,29 @@ async function triggerDownload(which) {
   URL.revokeObjectURL(url);
 }
 
+// ── Share Trigger ─────────────────────────────────────────────
+async function triggerShare(which) {
+  const errId = which === 'b1' ? 'b1Err' : 'b2Err';
+  const bytes = which === 'b1' ? resultB1 : resultB2;
+  if (!bytes) { showErr(errId, 'PDF ready नहीं है। पहले Process करो।'); return; }
+
+  const awb  = (which === 'b1' ? document.getElementById('b1AwbNum').textContent
+                                : (extracted ? extracted.awb : 'AWB'));
+  const name = awb + '.pdf';
+
+  if (!navigator.share) { showErr(errId, 'Share API इस browser में support नहीं है। Download use करो।'); return; }
+
+  try {
+    const file = new File([bytes], name, { type: 'application/pdf' });
+    await navigator.share({ files: [file], title: name });
+  } catch (e) {
+    if (e.name !== 'AbortError') showErr(errId, 'Share नहीं हो सका: ' + e.message);
+  }
+}
+
 // ── Reset Button 2 ───────────────────────────────────────────
 function resetB2() {
-  hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('calcErr');
+  hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('b2ShareBtn'); hide('calcErr');
   document.getElementById('inTarget').value = '';
   document.getElementById('inOcdc').value   = '';
   document.getElementById('inAdd').value    = '';
