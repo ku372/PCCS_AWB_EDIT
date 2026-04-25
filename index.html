@@ -518,6 +518,90 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 }
 .dash-logout:hover { color: var(--red); border-color: var(--red); }
 
+/* ── History Panel ──────────────────────────────────────────── */
+.history-panel { margin-top: 18px; animation: slide-in 0.28s ease; }
+.history-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 0 4px 10px;
+}
+.history-title {
+  font-size: 0.72rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.2px;
+}
+.history-clear {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit; font-size: 0.7rem;
+  padding: 5px 12px; border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.history-clear:hover { color: var(--red); border-color: var(--red); }
+.history-clear:disabled { opacity: 0.4; cursor: not-allowed; }
+.history-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 320px; overflow-y: auto;
+  padding-right: 2px;
+}
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+.history-item:hover { border-color: rgba(0,198,255,0.35); }
+.history-item-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(0,198,255,0.15), rgba(0,198,255,0.03));
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.history-item-body { flex: 1; min-width: 0; }
+.history-item-awb {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.history-item-meta {
+  font-size: 0.7rem; color: var(--muted);
+  margin-top: 2px;
+  display: flex; align-items: center; gap: 8px;
+}
+.history-item-total { color: var(--green); font-weight: 600; }
+.history-item-del {
+  background: transparent; border: none;
+  color: var(--muted); font-size: 16px;
+  width: 32px; height: 32px; border-radius: 8px;
+  cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.history-item-del:hover { background: rgba(248,113,113,0.12); color: var(--red); }
+.history-empty {
+  text-align: center; padding: 22px 12px;
+  background: var(--card); border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--muted); font-size: 0.78rem;
+}
+.history-empty-icon { font-size: 24px; margin-bottom: 6px; opacity: 0.6; }
+.dash-card.has-count .dash-card-title::after {
+  content: attr(data-count);
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.62rem;
+  background: rgba(0,198,255,0.15);
+  color: var(--accent);
+  border: 1px solid rgba(0,198,255,0.35);
+  padding: 2px 8px; border-radius: 999px;
+  font-family: inherit; letter-spacing: 0.5px;
+  vertical-align: middle;
+}
+
 /* ── Back to Dashboard bar (inside main app) ───────────────── */
 .back-bar {
   display: flex; align-items: center; gap: 10px;
@@ -609,17 +693,23 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <div class="dash-card-arrow">›</div>
       </button>
 
-      <button class="dash-card secondary disabled" id="cardHistory" type="button">
+      <button class="dash-card secondary" id="cardHistory" type="button">
         <div class="dash-card-icon">📊</div>
         <div class="dash-card-body">
-          <div class="dash-card-title">
-            Recent History
-            <span class="dash-badge">SOON</span>
-          </div>
-          <div class="dash-card-sub">Past AWBs &amp; downloads (coming soon)</div>
+          <div class="dash-card-title" id="cardHistoryTitle">Recent History</div>
+          <div class="dash-card-sub" id="cardHistorySub">Past AWBs &amp; downloads</div>
         </div>
-        <div class="dash-card-arrow">›</div>
+        <div class="dash-card-arrow" id="cardHistoryArrow">›</div>
       </button>
+    </div>
+
+    <!-- History Panel (toggled by Recent History card) -->
+    <div class="history-panel hidden" id="historyPanel">
+      <div class="history-head">
+        <div class="history-title">Saved AWBs · Last 10</div>
+        <button class="history-clear" id="historyClearBtn" type="button">🗑 Clear All</button>
+      </div>
+      <div id="historyListWrap"></div>
     </div>
 
     <div class="dash-footer">
@@ -1654,13 +1744,167 @@ function checkExtracted(data) {
   document.getElementById('backToDash').addEventListener('click', () => {
     if (isSessionValid()) showDashboard(); else showLogin();
   });
-  document.getElementById('cardHistory').addEventListener('click', () => {
-    alert('📊 Recent History feature jaldi aa raha hai!');
-  });
   document.getElementById('logoutBtn').addEventListener('click', () => {
     clearSession();
     showLogin();
   });
+
+  /* ── Recent History (text-only, max 10 entries) ─────────── */
+  const HISTORY_KEY = 'pccs_history_v1';
+  const HISTORY_MAX = 10;
+
+  const historyPanel    = document.getElementById('historyPanel');
+  const historyListWrap = document.getElementById('historyListWrap');
+  const historyClearBtn = document.getElementById('historyClearBtn');
+  const cardHistory     = document.getElementById('cardHistory');
+  const cardHistoryArrow = document.getElementById('cardHistoryArrow');
+  const cardHistorySub  = document.getElementById('cardHistorySub');
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (_) { return []; }
+  }
+
+  function persistHistory(arr) {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); }
+    catch (_) {}
+  }
+
+  function addHistoryEntry(entry) {
+    if (!entry || !entry.awb || entry.awb === '-' || !entry.total || entry.total === '-') return;
+    const arr = loadHistory();
+    // Avoid exact duplicate (same AWB + same total) within 5 seconds
+    const last = arr[0];
+    if (last && last.awb === entry.awb && last.total === entry.total &&
+        (Date.now() - last.date) < 5000) return;
+    arr.unshift({
+      awb:   String(entry.awb).slice(0, 32),
+      total: String(entry.total).slice(0, 24),
+      date:  Date.now()
+    });
+    if (arr.length > HISTORY_MAX) arr.length = HISTORY_MAX;
+    persistHistory(arr);
+    renderHistory();
+  }
+
+  function deleteHistoryEntry(idx) {
+    const arr = loadHistory();
+    if (idx < 0 || idx >= arr.length) return;
+    arr.splice(idx, 1);
+    persistHistory(arr);
+    renderHistory();
+  }
+
+  function clearHistory() {
+    persistHistory([]);
+    renderHistory();
+  }
+
+  function fmtDate(ts) {
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() +
+           ' · ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function renderHistory() {
+    const arr = loadHistory();
+    cardHistorySub.textContent = arr.length
+      ? arr.length + ' saved AWB' + (arr.length === 1 ? '' : 's')
+      : 'No saved AWBs yet';
+    historyClearBtn.disabled = arr.length === 0;
+
+    if (!arr.length) {
+      historyListWrap.innerHTML =
+        '<div class="history-empty">' +
+          '<div class="history-empty-icon">📭</div>' +
+          'Abhi tak koi AWB save nahi hua hai.<br>' +
+          'PDF download karne par yahan apne aap save ho jayega.' +
+        '</div>';
+      return;
+    }
+
+    const escape = s => String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    historyListWrap.innerHTML =
+      '<div class="history-list">' +
+      arr.map((e, i) =>
+        '<div class="history-item">' +
+          '<div class="history-item-icon">📄</div>' +
+          '<div class="history-item-body">' +
+            '<div class="history-item-awb">' + escape(e.awb) + '</div>' +
+            '<div class="history-item-meta">' +
+              '<span>' + fmtDate(e.date) + '</span>' +
+              '<span>·</span>' +
+              '<span class="history-item-total">' + escape(e.total) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<button class="history-item-del" data-idx="' + i + '" title="Delete this entry" type="button">🗑</button>' +
+        '</div>'
+      ).join('') +
+      '</div>';
+  }
+
+  function toggleHistoryPanel() {
+    const willOpen = historyPanel.classList.contains('hidden');
+    renderHistory();
+    historyPanel.classList.toggle('hidden');
+    cardHistoryArrow.textContent = willOpen ? '⌃' : '›';
+    if (willOpen) {
+      setTimeout(() => historyPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+    }
+  }
+
+  cardHistory.addEventListener('click', toggleHistoryPanel);
+  historyClearBtn.addEventListener('click', () => {
+    if (!loadHistory().length) return;
+    if (confirm('Saari saved AWB history delete kar dein?')) clearHistory();
+  });
+  historyListWrap.addEventListener('click', e => {
+    const btn = e.target.closest('.history-item-del');
+    if (!btn) return;
+    deleteHistoryEntry(parseInt(btn.dataset.idx, 10));
+  });
+
+  /* ── Capture downloads into history (wraps existing function) ── */
+  function captureCurrentEntry(which) {
+    try {
+      const awbEl   = document.getElementById('b1AwbNum');
+      const totalEl = which === 'b1'
+        ? document.getElementById('b1Total')
+        : document.getElementById('rTotal');
+      const awb = (which === 'b1' && awbEl && awbEl.textContent && awbEl.textContent !== '-')
+        ? awbEl.textContent.trim()
+        : (typeof extracted !== 'undefined' && extracted && extracted.awb ? extracted.awb : null);
+      const total = totalEl ? totalEl.textContent.trim() : null;
+      if (awb && total && total !== '-') addHistoryEntry({ awb, total });
+    } catch (_) {}
+  }
+
+  if (typeof window.triggerDownload === 'function') {
+    const _origTriggerDownload = window.triggerDownload;
+    window.triggerDownload = async function (which) {
+      const out = await _origTriggerDownload.apply(this, arguments);
+      captureCurrentEntry(which);
+      return out;
+    };
+  }
+  if (typeof window.triggerShare === 'function') {
+    const _origTriggerShare = window.triggerShare;
+    window.triggerShare = async function (which) {
+      const out = await _origTriggerShare.apply(this, arguments);
+      captureCurrentEntry(which);
+      return out;
+    };
+  }
+
+  // Initial render so the count subtitle is correct on first dashboard view
+  renderHistory();
 
   // Boot: skip login if session is still valid
   if (isSessionValid()) showDashboard(); else showLogin();
