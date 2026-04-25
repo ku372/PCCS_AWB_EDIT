@@ -539,6 +539,18 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 }
 .history-clear:hover { color: var(--red); border-color: var(--red); }
 .history-clear:disabled { opacity: 0.4; cursor: not-allowed; }
+.history-actions { display: flex; gap: 8px; }
+.history-export {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit; font-size: 0.7rem;
+  padding: 5px 12px; border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.history-export:hover { color: var(--accent); border-color: var(--accent); }
+.history-export:disabled { opacity: 0.4; cursor: not-allowed; }
 .history-list {
   display: flex; flex-direction: column; gap: 8px;
   max-height: 320px; overflow-y: auto;
@@ -707,7 +719,10 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
     <div class="history-panel hidden" id="historyPanel">
       <div class="history-head">
         <div class="history-title">Saved AWBs · Last 10</div>
-        <button class="history-clear" id="historyClearBtn" type="button">🗑 Clear All</button>
+        <div class="history-actions">
+          <button class="history-export" id="historyExportBtn" type="button">⬇ CSV</button>
+          <button class="history-clear" id="historyClearBtn" type="button">🗑 Clear All</button>
+        </div>
       </div>
       <div id="historyListWrap"></div>
     </div>
@@ -1753,12 +1768,13 @@ function checkExtracted(data) {
   const HISTORY_KEY = 'pccs_history_v1';
   const HISTORY_MAX = 10;
 
-  const historyPanel    = document.getElementById('historyPanel');
-  const historyListWrap = document.getElementById('historyListWrap');
-  const historyClearBtn = document.getElementById('historyClearBtn');
-  const cardHistory     = document.getElementById('cardHistory');
+  const historyPanel     = document.getElementById('historyPanel');
+  const historyListWrap  = document.getElementById('historyListWrap');
+  const historyClearBtn  = document.getElementById('historyClearBtn');
+  const historyExportBtn = document.getElementById('historyExportBtn');
+  const cardHistory      = document.getElementById('cardHistory');
   const cardHistoryArrow = document.getElementById('cardHistoryArrow');
-  const cardHistorySub  = document.getElementById('cardHistorySub');
+  const cardHistorySub   = document.getElementById('cardHistorySub');
 
   function loadHistory() {
     try {
@@ -1816,6 +1832,7 @@ function checkExtracted(data) {
       ? arr.length + ' saved AWB' + (arr.length === 1 ? '' : 's')
       : 'No saved AWBs yet';
     historyClearBtn.disabled = arr.length === 0;
+    historyExportBtn.disabled = arr.length === 0;
 
     if (!arr.length) {
       historyListWrap.innerHTML =
@@ -1865,6 +1882,48 @@ function checkExtracted(data) {
     if (!loadHistory().length) return;
     if (confirm('Saari saved AWB history delete kar dein?')) clearHistory();
   });
+
+  /* ── CSV Export (text-only fields we already saved) ─────── */
+  function csvCell(v) {
+    const s = String(v == null ? '' : v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function exportHistoryCSV() {
+    const arr = loadHistory();
+    if (!arr.length) return;
+
+    const header = ['#', 'AWB Number', 'Date', 'Time', 'Total'];
+    const rows = arr.map((e, i) => {
+      const d = new Date(e.date);
+      const pad = n => String(n).padStart(2, '0');
+      const dateStr = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
+      const timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes());
+      return [i + 1, e.awb, dateStr, timeStr, e.total];
+    });
+
+    const csv = [header, ...rows]
+      .map(row => row.map(csvCell).join(','))
+      .join('\r\n');
+
+    // BOM so Excel opens UTF-8 (₹ symbol) correctly
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const ts   = new Date();
+    const pad  = n => String(n).padStart(2, '0');
+    const fname = 'PCCS_AWB_History_' +
+      ts.getFullYear() + pad(ts.getMonth() + 1) + pad(ts.getDate()) + '_' +
+      pad(ts.getHours()) + pad(ts.getMinutes()) + '.csv';
+
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  historyExportBtn.addEventListener('click', exportHistoryCSV);
   historyListWrap.addEventListener('click', e => {
     const btn = e.target.closest('.history-item-del');
     if (!btn) return;
