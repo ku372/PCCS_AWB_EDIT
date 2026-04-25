@@ -332,9 +332,246 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   text-align: center; font-size: 0.67rem; color: var(--muted);
   margin-top: 22px; line-height: 1.7;
 }
+
+/* ── Login Screen ───────────────────────────────────────────── */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 20% 15%, rgba(0,198,255,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 85%, rgba(249,115,22,0.10) 0%, transparent 55%);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: fade-in 0.4s ease;
+}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.login-box {
+  width: 100%; max-width: 360px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 22px 24px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.45),
+              0 0 0 1px rgba(0,198,255,0.08) inset;
+}
+.login-logo {
+  text-align: center; font-family: 'Rajdhani', sans-serif;
+  font-size: 1.55rem; font-weight: 700; letter-spacing: 1px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.login-sub {
+  text-align: center; color: var(--muted);
+  font-size: 0.78rem; margin-top: 4px;
+}
+.login-icon {
+  width: 64px; height: 64px; margin: 18px auto 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0,198,255,0.18), rgba(249,115,22,0.15));
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+}
+.login-title {
+  text-align: center; font-size: 0.95rem; color: var(--text);
+  font-weight: 600; margin-bottom: 4px;
+}
+.login-hint {
+  text-align: center; color: var(--muted);
+  font-size: 0.72rem; margin-bottom: 18px;
+}
+.pin-display {
+  display: flex; justify-content: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.pin-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--input-bg); border: 1.5px solid var(--border);
+  transition: all 0.18s ease;
+}
+.pin-dot.filled {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(0,198,255,0.55);
+}
+.pin-dot.error {
+  background: var(--red); border-color: var(--red);
+  animation: shake 0.4s ease;
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.pin-key {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.4rem; font-weight: 600;
+  height: 54px; border-radius: 12px;
+  cursor: pointer; user-select: none;
+  transition: transform 0.08s ease, background 0.15s ease;
+}
+.pin-key:active { transform: scale(0.94); background: rgba(0,198,255,0.12); }
+.pin-key.action { color: var(--muted); font-size: 0.78rem; font-family: inherit; }
+.pin-key.del { color: var(--red); font-size: 1.2rem; }
+.login-msg {
+  margin-top: 14px; min-height: 18px;
+  text-align: center; font-size: 0.78rem;
+  color: var(--red); font-weight: 500;
+}
+
+/* ── Dashboard ──────────────────────────────────────────────── */
+.dashboard { animation: slide-in 0.32s ease; }
+.welcome-card {
+  background: linear-gradient(135deg, rgba(0,198,255,0.10), rgba(249,115,22,0.06));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 18px;
+  margin-bottom: 16px;
+}
+.welcome-greet {
+  font-size: 0.72rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.2px;
+}
+.welcome-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.35rem; font-weight: 700;
+  color: var(--text); margin-top: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.welcome-sub {
+  font-size: 0.74rem; color: var(--muted); margin-top: 4px;
+}
+.dash-section-title {
+  font-size: 0.72rem; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  margin: 6px 4px 10px;
+}
+.dash-cards {
+  display: grid; grid-template-columns: 1fr; gap: 12px;
+}
+.dash-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 16px;
+  display: flex; align-items: center; gap: 14px;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
+}
+.dash-card:active { transform: scale(0.98); }
+.dash-card.primary {
+  border-color: rgba(0,198,255,0.45);
+  box-shadow: 0 6px 22px rgba(0,198,255,0.12);
+}
+.dash-card.primary:hover { box-shadow: 0 10px 28px rgba(0,198,255,0.22); }
+.dash-card.disabled { opacity: 0.6; cursor: not-allowed; }
+.dash-card-icon {
+  width: 52px; height: 52px; flex-shrink: 0;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  background: linear-gradient(135deg, rgba(0,198,255,0.18), rgba(0,198,255,0.04));
+  border: 1px solid var(--border);
+}
+.dash-card.secondary .dash-card-icon {
+  background: linear-gradient(135deg, rgba(249,115,22,0.18), rgba(249,115,22,0.04));
+}
+.dash-card-body { flex: 1; min-width: 0; }
+.dash-card-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.05rem; font-weight: 600; color: var(--text);
+}
+.dash-card-sub {
+  font-size: 0.74rem; color: var(--muted); margin-top: 2px;
+}
+.dash-card-arrow { color: var(--muted); font-size: 18px; }
+.dash-badge {
+  display: inline-block;
+  font-size: 0.62rem; padding: 2px 8px; border-radius: 999px;
+  background: rgba(249,115,22,0.15); color: var(--accent2);
+  border: 1px solid rgba(249,115,22,0.35);
+  margin-left: 8px; font-family: inherit; letter-spacing: 0.5px;
+}
+.dash-footer {
+  display: flex; justify-content: center; margin-top: 18px;
+}
+.dash-logout {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-size: 0.72rem;
+  padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  font-family: inherit;
+}
+.dash-logout:hover { color: var(--red); border-color: var(--red); }
+
+/* ── Back to Dashboard bar (inside main app) ───────────────── */
+.back-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.back-btn {
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--text); font-family: inherit;
+  font-size: 0.78rem; padding: 8px 14px;
+  border-radius: 999px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.back-btn:active { transform: scale(0.96); }
 </style>
 </head>
 <body>
+
+<!-- ════════════════════════════════════════════════════
+     LOGIN OVERLAY (PIN gate)
+     ════════════════════════════════════════════════════ -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">✈ PCCS AWB</div>
+    <div class="login-sub">Secure Access</div>
+    <div class="login-icon">🔒</div>
+    <div class="login-title">Enter 4-Digit PIN</div>
+    <div class="login-hint">App access ke liye PIN daalein</div>
+
+    <div class="pin-display" id="pinDisplay">
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+      <div class="pin-dot"></div>
+    </div>
+
+    <div class="pin-pad" id="pinPad">
+      <button class="pin-key" data-key="1">1</button>
+      <button class="pin-key" data-key="2">2</button>
+      <button class="pin-key" data-key="3">3</button>
+      <button class="pin-key" data-key="4">4</button>
+      <button class="pin-key" data-key="5">5</button>
+      <button class="pin-key" data-key="6">6</button>
+      <button class="pin-key" data-key="7">7</button>
+      <button class="pin-key" data-key="8">8</button>
+      <button class="pin-key" data-key="9">9</button>
+      <button class="pin-key action" data-key="clear">Clear</button>
+      <button class="pin-key" data-key="0">0</button>
+      <button class="pin-key del" data-key="del">⌫</button>
+    </div>
+
+    <div class="login-msg" id="loginMsg"></div>
+  </div>
+</div>
+
 <div class="container">
 
   <!-- Header -->
@@ -349,6 +586,55 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
     <button class="install-btn" id="installBtn">Install</button>
     <button class="close-btn" onclick="document.getElementById('installBanner').classList.add('hidden')">✕</button>
   </div>
+
+  <!-- ════════════════════════════════════════════════════
+       DASHBOARD (shown after login)
+       ════════════════════════════════════════════════════ -->
+  <div class="dashboard hidden" id="dashboard">
+    <div class="welcome-card">
+      <div class="welcome-greet">Welcome back</div>
+      <div class="welcome-name">PRADEEP CARGO &amp; COURIER SERVICE</div>
+      <div class="welcome-sub">IndiGo AWB · GST Calculator · PDF Editor</div>
+    </div>
+
+    <div class="dash-section-title">Quick Actions</div>
+
+    <div class="dash-cards">
+      <button class="dash-card primary" id="cardCreateAwb" type="button">
+        <div class="dash-card-icon">🚀</div>
+        <div class="dash-card-body">
+          <div class="dash-card-title">Create / Edit AWB PDF</div>
+          <div class="dash-card-sub">Upload, calculate GST &amp; download edited PDF</div>
+        </div>
+        <div class="dash-card-arrow">›</div>
+      </button>
+
+      <button class="dash-card secondary disabled" id="cardHistory" type="button">
+        <div class="dash-card-icon">📊</div>
+        <div class="dash-card-body">
+          <div class="dash-card-title">
+            Recent History
+            <span class="dash-badge">SOON</span>
+          </div>
+          <div class="dash-card-sub">Past AWBs &amp; downloads (coming soon)</div>
+        </div>
+        <div class="dash-card-arrow">›</div>
+      </button>
+    </div>
+
+    <div class="dash-footer">
+      <button class="dash-logout" id="logoutBtn" type="button">🔒 Lock App</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════
+       MAIN APP (PDF tool — hidden until dashboard click)
+       ════════════════════════════════════════════════════ -->
+  <div id="mainApp" class="hidden">
+
+    <div class="back-bar">
+      <button class="back-btn" id="backToDash" type="button">← Dashboard</button>
+    </div>
 
   <!-- ── Step 1: Upload ── -->
   <div class="card">
@@ -517,6 +803,8 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
     <button class="btn btn-dl hidden" id="b2ShareBtn" onclick="triggerShare('b2')" style="background:var(--green);margin-top:0.5rem;">📤 Share PDF</button>
     <button class="btn-rst hidden" id="b2RstBtn" onclick="resetB2()">🔄 Reset करें</button>
   </div>
+
+  </div><!-- /mainApp -->
 
   <div class="version">
     PCCS AWB Tool v2.0 · PRADEEP CARGO &amp; COURIER SERVICE<br>
@@ -1234,6 +1522,149 @@ function checkExtracted(data) {
     );
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   LOGIN + DASHBOARD GATEWAY (additive — does not touch core PDF logic)
+   ════════════════════════════════════════════════════════════ */
+(function () {
+  const APP_PIN          = '2024';
+  const SESSION_KEY      = 'pccs_auth_v1';
+  const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+  const loginOverlay = document.getElementById('loginOverlay');
+  const dashboard    = document.getElementById('dashboard');
+  const mainApp      = document.getElementById('mainApp');
+  const pinPad       = document.getElementById('pinPad');
+  const pinDots      = document.querySelectorAll('#pinDisplay .pin-dot');
+  const loginMsg     = document.getElementById('loginMsg');
+
+  let pinBuffer = '';
+
+  function isSessionValid() {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !data.ts) return false;
+      return (Date.now() - data.ts) < SESSION_DURATION;
+    } catch (_) { return false; }
+  }
+
+  function saveSession() {
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now() })); }
+    catch (_) {}
+  }
+
+  function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (_) {}
+  }
+
+  function renderDots(state) {
+    pinDots.forEach((d, i) => {
+      d.classList.remove('filled', 'error');
+      if (state === 'error')          d.classList.add('error');
+      else if (i < pinBuffer.length)  d.classList.add('filled');
+    });
+  }
+
+  function showLogin() {
+    loginOverlay.style.display = 'flex';
+    dashboard.classList.add('hidden');
+    mainApp.classList.add('hidden');
+    pinBuffer = '';
+    renderDots();
+    loginMsg.textContent = '';
+  }
+
+  function showDashboard() {
+    loginOverlay.style.display = 'none';
+    mainApp.classList.add('hidden');
+    dashboard.classList.remove('hidden');
+  }
+
+  function showMainApp() {
+    loginOverlay.style.display = 'none';
+    dashboard.classList.add('hidden');
+    mainApp.classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function attemptUnlock() {
+    if (pinBuffer === APP_PIN) {
+      saveSession();
+      loginMsg.style.color = 'var(--green)';
+      loginMsg.textContent = '✓ Unlocked';
+      setTimeout(() => {
+        loginMsg.style.color = '';
+        loginMsg.textContent = '';
+        showDashboard();
+      }, 280);
+    } else {
+      renderDots('error');
+      loginMsg.textContent = '✗ Galat PIN — dobara try karein';
+      setTimeout(() => {
+        pinBuffer = '';
+        renderDots();
+        loginMsg.textContent = '';
+      }, 700);
+    }
+  }
+
+  pinPad.addEventListener('click', e => {
+    const btn = e.target.closest('.pin-key');
+    if (!btn) return;
+    const key = btn.dataset.key;
+
+    if (key === 'clear') {
+      pinBuffer = '';
+      renderDots();
+      loginMsg.textContent = '';
+      return;
+    }
+    if (key === 'del') {
+      pinBuffer = pinBuffer.slice(0, -1);
+      renderDots();
+      return;
+    }
+    if (pinBuffer.length >= 4) return;
+    pinBuffer += key;
+    renderDots();
+    if (pinBuffer.length === 4) setTimeout(attemptUnlock, 120);
+  });
+
+  // Physical keyboard support
+  document.addEventListener('keydown', e => {
+    if (loginOverlay.style.display === 'none') return;
+    if (e.key >= '0' && e.key <= '9') {
+      if (pinBuffer.length >= 4) return;
+      pinBuffer += e.key;
+      renderDots();
+      if (pinBuffer.length === 4) setTimeout(attemptUnlock, 120);
+    } else if (e.key === 'Backspace') {
+      pinBuffer = pinBuffer.slice(0, -1);
+      renderDots();
+    } else if (e.key === 'Escape') {
+      pinBuffer = '';
+      renderDots();
+    }
+  });
+
+  // Dashboard navigation
+  document.getElementById('cardCreateAwb').addEventListener('click', showMainApp);
+  document.getElementById('backToDash').addEventListener('click', () => {
+    if (isSessionValid()) showDashboard(); else showLogin();
+  });
+  document.getElementById('cardHistory').addEventListener('click', () => {
+    alert('📊 Recent History feature jaldi aa raha hai!');
+  });
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    clearSession();
+    showLogin();
+  });
+
+  // Boot: skip login if session is still valid
+  if (isSessionValid()) showDashboard(); else showLogin();
+})();
 </script>
 </body>
 </html>
