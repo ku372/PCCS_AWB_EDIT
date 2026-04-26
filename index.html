@@ -1551,27 +1551,29 @@ async function applyEdits(bytes, fields) {
   page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
-  // ── (A.1) TAX Cell Border Patch (v5.3 — final alignment) ─────
+  // ── (A.1) TAX Cell Border Patch (v5.4 — zoomed-image alignment) ─
   // Iteration log:
   //   v5    (taxWriteY - 1.0, x=124)    → bottom too low (slight gap)
   //   v5.1  (taxWriteY - 0.3, x=123.5)  → bottom too close to value
-  //   v5.2  (taxWriteY - 0.7, x=123.5)  → bottom STILL too close (extra line under value)
-  //   v5.3  (taxWriteY - 2.5, x=124.5)  → bottom moved DOWN 1.8pt to reach original border
-  //                                       right moved OUTWARD 1.0pt to reach original border
+  //   v5.2  (taxWriteY - 0.7, x=123.5)  → STILL too close
+  //   v5.3  (taxWriteY - 2.5, x=124.5)  → STILL too close (per zoomed mobile capture)
+  //   v5.4  (taxWriteY - 4.3, x=125.5)  → bottom DOWN another 1.8pt
+  //                                       right OUTWARD another 1.0pt
+  //                                       (per user's exact deltas after zoomed inspection)
   //
-  // Per user feedback: the original cell bottom border sits significantly
-  // BELOW the value baseline (in the row gap above the next cell). Earlier
-  // assumption that border hugs the baseline was wrong.
+  // The form's cell uses diagonal "wing" brackets, not a perfect rectangle.
+  // True bottom border sits well below the value baseline; my prior estimates
+  // hugged the value too tightly.
   //
   // Safety unchanged:
-  //   • Value text right-aligns to x≈106.754 → x=124.5 vertical never touches it.
-  //   • "TAX" label sits at x=138 → x=124.5 is still to its LEFT (4pt clear).
-  //   • Bottom line at y=taxWriteY-2.5 is well BELOW value baseline (no
+  //   • Value text right-aligns to x≈106.754 → x=125.5 vertical never touches it.
+  //   • "TAX" label sits at x=138 → x=125.5 is still to its LEFT (12.5pt clear).
+  //   • Bottom line at y=taxWriteY-4.3 is well BELOW value baseline (no
   //     descender) and well BELOW the white rect bottom (y=taxWriteY).
   const TAX_BOX_LEFT  = 58;
-  const TAX_BOX_RIGHT = 124.5;
+  const TAX_BOX_RIGHT = 125.5;
   const TAX_TOP_Y     = snap(dotsY0 + 5.0);
-  const TAX_BOT_Y     = snap(taxWriteY - 2.5);
+  const TAX_BOT_Y     = snap(taxWriteY - 4.3);
   page.drawLine({
     start    : { x: snap(TAX_BOX_RIGHT), y: TAX_BOT_Y },
     end      : { x: snap(TAX_BOX_RIGHT), y: TAX_TOP_Y },

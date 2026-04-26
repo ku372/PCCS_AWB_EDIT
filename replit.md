@@ -25,7 +25,8 @@ A static client-side Progressive Web App (PWA) for IndiGo AWB GST calculation an
 - **Deployment**: Configured as a `static` deployment with `publicDir: "."` (project root).
 
 ## Recent Changes
-- **v2.8.4 (TAX border patch v5.3 — final alignment)** — v5.2 was still too close to the value. The original cell border actually sits significantly below the baseline. Moved bottom line down 1.8pt (`taxWriteY-0.7 → taxWriteY-2.5`) and right vertical outward 1pt (`123.5 → 124.5`). Thickness kept at `0.35`. SW cache bumped to `pccs-awb-v2.8.4-taxborder`.
+- **v2.8.5 (TAX border patch v5.4 — zoomed-image alignment)** — Per zoomed mobile capture, v5.3 still sat too close to the value. Form's cells use diagonal "wing" brackets so the true bottom border is well below the baseline. Applied user's exact deltas: bottom DOWN another 1.8pt (`taxWriteY-2.5 → taxWriteY-4.3`), right OUTWARD another 1.0pt (`124.5 → 125.5`). Thickness `0.35` kept. SW cache bumped to `pccs-awb-v2.8.5-taxborder`.
+- **v2.8.4 (TAX border patch v5.3)** — Bottom moved to `taxWriteY-2.5`, right to `124.5`.
 - **v2.8.3 (TAX border patch v5.2)** — Moved bottom line to `taxWriteY-0.7`, splitting the difference between v5 (too low) and v5.1 (too high).
 - **v2.8.2 (TAX border patch v5.1)** — Tweaked v5 lines: `TAX_BOT_Y` raised from `taxWriteY-1.0` to `taxWriteY-0.3`, `TAX_BOX_RIGHT` shifted inward `124 → 123.5`, line `thickness: 0.5 → 0.35`.
 - **v2.8.1 (TAX border patch v5)** — White-rect inset alone (v4) wasn't enough to close the visible gaps on the TAX cell's right vertical and bottom horizontal. Added two thin black overlay lines via `page.drawLine()` after the TAX text writes. Lines avoid both the value (right-aligned at x≈107) and the TAX label (at x=138), so no text is touched.
