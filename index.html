@@ -1551,34 +1551,40 @@ async function applyEdits(bytes, fields) {
   page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
-  // ── (A.1) TAX Cell Border Patch (v5) ──────────────────────────
-  // Even after v4 white-rect inset, user-confirmed visual gap remained on
-  // the cell's RIGHT vertical and BOTTOM horizontal. Cause is independent
-  // of our edit (likely original PDF stroke / pdf-lib save artifact).
+  // ── (A.1) TAX Cell Border Patch (v5.1 — alignment + thinner) ──
+  // User feedback (v5): bottom line landed ~1pt below the actual cell edge
+  // (in the empty zone between value baseline and next row). Right line
+  // was slightly outside the existing vertical. Lines also looked too
+  // bold compared to the form's hairlines.
   //
-  // Fix: overlay two thin black line segments to close the cell.
-  //   Right line  : x=124 vertical, between top border (dotsY0+5) and bottom (taxWriteY-1)
-  //   Bottom line : y=taxWriteY-1 horizontal, x=58 to x=124
+  // Adjustments vs v5:
+  //   • TAX_BOT_Y : taxWriteY - 1.0  →  taxWriteY - 0.3   (moved UP 0.7pt)
+  //                 Now sits right under the value baseline, hugging text.
+  //                 Constraint: MUST stay < taxWriteY else the line crosses
+  //                 the value digits (no descenders, baseline is the floor).
+  //   • TAX_BOX_RIGHT : 124  →  123.5   (moved INWARD 0.5pt)
+  //                 Better aligns with the original cell's right vertical.
+  //   • thickness : 0.5  →  0.35       (matches form hairlines)
   //
-  // Safety:
-  //   • Value text right-aligns to RIGHT_EDGE=106.754 → x=124 line never touches it.
-  //   • "TAX" label sits at x=138 → x=124 line is to the LEFT of it, no overlap.
-  //   • Bottom line at y=taxWriteY-1 is BELOW the value baseline (taxWriteY) and
-  //     outside the white rect (which ends at y=taxWriteY) → no text contact.
+  // Safety unchanged:
+  //   • Value text right-aligns to x≈106.754 → vertical line never touches.
+  //   • "TAX" label is at x=138 → vertical line is to its LEFT.
+  //   • Bottom line at y=taxWriteY-0.3 is BELOW value baseline and BELOW
+  //     the white rect bottom (y=taxWriteY) → no text contact.
   const TAX_BOX_LEFT  = 58;
-  const TAX_BOX_RIGHT = 124;
+  const TAX_BOX_RIGHT = 123.5;
   const TAX_TOP_Y     = snap(dotsY0 + 5.0);
-  const TAX_BOT_Y     = snap(taxWriteY - 1.0);
+  const TAX_BOT_Y     = snap(taxWriteY - 0.3);
   page.drawLine({
     start    : { x: snap(TAX_BOX_RIGHT), y: TAX_BOT_Y },
     end      : { x: snap(TAX_BOX_RIGHT), y: TAX_TOP_Y },
-    thickness: 0.5,
+    thickness: 0.35,
     color    : black
   });
   page.drawLine({
     start    : { x: snap(TAX_BOX_LEFT),  y: TAX_BOT_Y },
     end      : { x: snap(TAX_BOX_RIGHT), y: TAX_BOT_Y },
-    thickness: 0.5,
+    thickness: 0.35,
     color    : black
   });
 
