@@ -1551,23 +1551,27 @@ async function applyEdits(bytes, fields) {
   page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
 
-  // ── (A.1) TAX Cell Border Patch (v5.2 — bottom-line micro-adjust) ──
+  // ── (A.1) TAX Cell Border Patch (v5.3 — final alignment) ─────
   // Iteration log:
-  //   v5  (taxWriteY - 1.0)  → user: "appearing below the TAX value" (too low)
-  //   v5.1(taxWriteY - 0.3)  → user: "too close to value, looks like extra line" (too high)
-  //   v5.2(taxWriteY - 0.7)  → split the difference; aims for the original border y.
+  //   v5    (taxWriteY - 1.0, x=124)    → bottom too low (slight gap)
+  //   v5.1  (taxWriteY - 0.3, x=123.5)  → bottom too close to value
+  //   v5.2  (taxWriteY - 0.7, x=123.5)  → bottom STILL too close (extra line under value)
+  //   v5.3  (taxWriteY - 2.5, x=124.5)  → bottom moved DOWN 1.8pt to reach original border
+  //                                       right moved OUTWARD 1.0pt to reach original border
   //
-  // Right vertical (123.5) and thickness (0.35) confirmed OK in v5.1, kept.
+  // Per user feedback: the original cell bottom border sits significantly
+  // BELOW the value baseline (in the row gap above the next cell). Earlier
+  // assumption that border hugs the baseline was wrong.
   //
   // Safety unchanged:
-  //   • Value text right-aligns to x≈106.754 → vertical line never touches.
-  //   • "TAX" label is at x=138 → vertical line is to its LEFT.
-  //   • Bottom line at y=taxWriteY-0.7 is BELOW value baseline (no descender)
-  //     and BELOW the white rect bottom (y=taxWriteY) → no text contact.
+  //   • Value text right-aligns to x≈106.754 → x=124.5 vertical never touches it.
+  //   • "TAX" label sits at x=138 → x=124.5 is still to its LEFT (4pt clear).
+  //   • Bottom line at y=taxWriteY-2.5 is well BELOW value baseline (no
+  //     descender) and well BELOW the white rect bottom (y=taxWriteY).
   const TAX_BOX_LEFT  = 58;
-  const TAX_BOX_RIGHT = 123.5;
+  const TAX_BOX_RIGHT = 124.5;
   const TAX_TOP_Y     = snap(dotsY0 + 5.0);
-  const TAX_BOT_Y     = snap(taxWriteY - 0.7);
+  const TAX_BOT_Y     = snap(taxWriteY - 2.5);
   page.drawLine({
     start    : { x: snap(TAX_BOX_RIGHT), y: TAX_BOT_Y },
     end      : { x: snap(TAX_BOX_RIGHT), y: TAX_TOP_Y },
