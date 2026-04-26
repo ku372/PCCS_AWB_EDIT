@@ -1536,59 +1536,10 @@ async function applyEdits(bytes, fields) {
   //                   TAX cell top border ≈ dotsY0+(4.5 to 5.5) range में है।
   //                   7.0 height से top=dotsY0+3.0 → border से ≥1.5pt margin ✅
   //                   Existing value max cap-height ≈ dotsY0+2.1 → अभी भी cover ✅
-  //
-  // RIGHT/BOTTOM BORDER FIX (v4):
-  //   width: 66.0 → 49.0  — right edge अब x=107 पर खत्म, x=107-124 untouched।
-  //                          TAX value right-aligned to x=106.754, इसलिए old text
-  //                          x=107 के बाद कभी नहीं था → कोई residue नहीं।
-  //                          TAX bracket curve (x>120) अब intact रहेगा।
-  //   y/height: bottom raised by 0.5pt — TAX bracket bottom curve safer।
-  //             y: taxWriteY-0.5 → taxWriteY    (bottom 0.5pt ऊपर)
-  //             height: 7.0 → 6.5               (top edge dotsY0+3.0 unchanged)
-  //             Note: digits descender ≈ 0pt → bottom inset safe।
-  page.drawRectangle({ x: snap(58),  y: snap(taxWriteY),       width: snap(49.0), height: snap(6.5),  color: white, borderWidth: 0, opacity: 1 });
+  page.drawRectangle({ x: snap(58),  y: snap(taxWriteY - 0.5), width: snap(66.0), height: snap(7.0),  color: white, borderWidth: 0, opacity: 1 });
   page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 0.5),    width: snap(25.3), height: snap(3.5),  color: white, borderWidth: 0, opacity: 1 });
   page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
-
-  // ── (A.1) TAX Cell Border Patch (v5.5 — merge with original border) ─
-  // Iteration log:
-  //   v5    (taxWriteY - 1.0, x=124)    → bottom too low (slight gap)
-  //   v5.1  (taxWriteY - 0.3, x=123.5)  → too close to value
-  //   v5.2  (taxWriteY - 0.7, x=123.5)  → still too close
-  //   v5.3  (taxWriteY - 2.5, x=124.5)  → still too close
-  //   v5.4  (taxWriteY - 4.3, x=125.5)  → DOUBLE-LINE effect (my line just
-  //                                       ABOVE the original border)
-  //   v5.5  (taxWriteY - 6.8, x=125.5)  → bottom DOWN another 2.5pt to
-  //                                       MERGE with the original border line
-  //                                       (per user's instruction to eliminate
-  //                                       the double-line effect)
-  //
-  // The form's original cell border is ~6.8pt below taxWriteY. v5.4 landed
-  // ~2.5pt short of it, producing two parallel hairlines. v5.5 lands ON it,
-  // so the two strokes overlap into a single clean line.
-  //
-  // Safety unchanged:
-  //   • Value text right-aligns to x≈106.754 → x=125.5 vertical never touches it.
-  //   • "TAX" label sits at x=138 → x=125.5 is still to its LEFT (12.5pt clear).
-  //   • Bottom line at y=taxWriteY-6.8 sits ON the original border, well below
-  //     value baseline & well below the white rect bottom (y=taxWriteY).
-  const TAX_BOX_LEFT  = 58;
-  const TAX_BOX_RIGHT = 125.5;
-  const TAX_TOP_Y     = snap(dotsY0 + 5.0);
-  const TAX_BOT_Y     = snap(taxWriteY - 6.8);
-  page.drawLine({
-    start    : { x: snap(TAX_BOX_RIGHT), y: TAX_BOT_Y },
-    end      : { x: snap(TAX_BOX_RIGHT), y: TAX_TOP_Y },
-    thickness: 0.35,
-    color    : black
-  });
-  page.drawLine({
-    start    : { x: snap(TAX_BOX_LEFT),  y: TAX_BOT_Y },
-    end      : { x: snap(TAX_BOX_RIGHT), y: TAX_BOT_Y },
-    thickness: 0.35,
-    color    : black
-  });
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
   page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
