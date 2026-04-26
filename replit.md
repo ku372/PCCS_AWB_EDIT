@@ -23,3 +23,8 @@ A static client-side Progressive Web App (PWA) for IndiGo AWB GST calculation an
 ## Replit Setup
 - **Workflow**: `Start application` runs `python3 -m http.server 5000 --bind 0.0.0.0` to serve the static files on port 5000.
 - **Deployment**: Configured as a `static` deployment with `publicDir: "."` (project root).
+
+## Recent Changes
+- **v2.8 (spinner + mobile)** — Added full-screen processing spinner overlay (`#procOverlay`) shown during PDF re-render in `triggerDownload` for both B1/B2 modes. Added 8 MB file-size guard at upload to prevent mobile crashes. Added `await delay(0)` yield in `handleB1` step 3 and in spinner branches so step UI paints before pdf-lib blocks the main thread. SW cache bumped to `pccs-awb-v2.8-spinner`.
+- **v4 TAX box border fix** — In `applyEdits()`, tightened TAX value white rect (RECT 1 only): `width: 66.0 → 49.0` and bottom raised `0.5pt` (`y: taxWriteY-0.5 → taxWriteY`, `height: 7.0 → 6.5`). This stops the white fill from bleeding onto the right vertical and bottom horizontal of the TAX cell's curved bracket border. RECT 2 (dots) and TAX label position untouched.
+- **v2.7 (CSV export)** — History list now exports as CSV (UTF-8 BOM, columns: #/AWB/Date/Time/Total).

@@ -614,6 +614,45 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   vertical-align: middle;
 }
 
+/* ── Processing Spinner Overlay ────────────────────────────── */
+.proc-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10, 14, 26, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9998;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: fade-in 0.18s ease;
+}
+.proc-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 26px 28px 22px;
+  width: 100%; max-width: 280px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+.proc-spinner {
+  width: 52px; height: 52px;
+  margin: 0 auto 16px;
+  border: 3px solid rgba(0, 198, 255, 0.18);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: proc-spin 0.85s linear infinite;
+}
+@keyframes proc-spin { to { transform: rotate(360deg); } }
+.proc-title {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.05rem; font-weight: 600; color: var(--text);
+  letter-spacing: 0.5px;
+}
+.proc-sub {
+  font-size: 0.74rem; color: var(--muted);
+  margin-top: 4px; line-height: 1.5;
+}
+
 /* ── Back to Dashboard bar (inside main app) ───────────────── */
 .back-bar {
   display: flex; align-items: center; gap: 10px;
@@ -630,6 +669,17 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 </style>
 </head>
 <body>
+
+<!-- ════════════════════════════════════════════════════
+     PROCESSING SPINNER OVERLAY (shown during PDF work)
+     ════════════════════════════════════════════════════ -->
+<div class="proc-overlay hidden" id="procOverlay" aria-hidden="true">
+  <div class="proc-box">
+    <div class="proc-spinner"></div>
+    <div class="proc-title" id="procTitle">Processing...</div>
+    <div class="proc-sub" id="procSub">PDF तैयार हो रही है, कृपया रुकें</div>
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════════════
      LOGIN OVERLAY (PIN gate)
@@ -973,10 +1023,41 @@ function hide(id)  { document.getElementById(id).classList.add('hidden'); }
 function addClass(id, cls) { document.getElementById(id).classList.add(cls); }
 function remClass(id, cls) { document.getElementById(id).classList.remove(cls); }
 
+// ── Processing Spinner Helpers (additive — does not change PDF logic) ──
+const PROC_OVERLAY_EL = document.getElementById('procOverlay');
+const PROC_TITLE_EL   = document.getElementById('procTitle');
+const PROC_SUB_EL     = document.getElementById('procSub');
+function showSpinner(title, sub) {
+  if (title) PROC_TITLE_EL.textContent = title;
+  if (sub)   PROC_SUB_EL.textContent   = sub;
+  PROC_OVERLAY_EL.classList.remove('hidden');
+  PROC_OVERLAY_EL.setAttribute('aria-hidden', 'false');
+  // give the browser a paint frame so the spinner is visible BEFORE heavy work
+  return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+}
+function hideSpinner() {
+  PROC_OVERLAY_EL.classList.add('hidden');
+  PROC_OVERLAY_EL.setAttribute('aria-hidden', 'true');
+  PROC_TITLE_EL.textContent = 'Processing...';
+  PROC_SUB_EL.textContent   = 'PDF तैयार हो रही है, कृपया रुकें';
+}
+// ── File Size Guard (mobile-safety) ──────────────────────────
+// IndiGo AWB PDFs are typically < 200 KB. PDFs > 8 MB on phones
+// often crash pdf.js / pdf-lib due to memory pressure.
+const MAX_PDF_BYTES = 8 * 1024 * 1024;
+
 // ── File Input Listener ──────────────────────────────────────
 document.getElementById('fileInput').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
+
+  if (file.size > MAX_PDF_BYTES) {
+    alert('PDF बहुत बड़ी है (' + (file.size / 1024 / 1024).toFixed(1) + ' MB).\n' +
+          'Mobile पर ' + (MAX_PDF_BYTES / 1024 / 1024) + ' MB तक की PDF safe है।\n' +
+          'कृपया छोटी file try करें।');
+    e.target.value = '';
+    return;
+  }
 
   // Read raw bytes
   pdfBytes  = await file.arrayBuffer();
@@ -1131,6 +1212,7 @@ async function handleB1() {
 
     // Step 3 — Edit PDF
     setStep(3, 'going', 'PDF edit हो रही है...');
+    await delay(0);  // mobile: step 3 UI को paint होने दो pdf-lib block से पहले
     resultB1 = await editPDF_B1(pdfBytes.slice(0), gst, newTotal);
     cachedB1Params = { gst, newTotal };  // re-render के लिए cache करो
     setStep(3, 'done', 'PDF edited ✓');
@@ -1454,7 +1536,17 @@ async function applyEdits(bytes, fields) {
   //                   TAX cell top border ≈ dotsY0+(4.5 to 5.5) range में है।
   //                   7.0 height से top=dotsY0+3.0 → border से ≥1.5pt margin ✅
   //                   Existing value max cap-height ≈ dotsY0+2.1 → अभी भी cover ✅
-  page.drawRectangle({ x: snap(58),  y: snap(taxWriteY - 0.5), width: snap(66.0), height: snap(7.0),  color: white, borderWidth: 0, opacity: 1 });
+  //
+  // RIGHT/BOTTOM BORDER FIX (v4):
+  //   width: 66.0 → 49.0  — right edge अब x=107 पर खत्म, x=107-124 untouched।
+  //                          TAX value right-aligned to x=106.754, इसलिए old text
+  //                          x=107 के बाद कभी नहीं था → कोई residue नहीं।
+  //                          TAX bracket curve (x>120) अब intact रहेगा।
+  //   y/height: bottom raised by 0.5pt — TAX bracket bottom curve safer।
+  //             y: taxWriteY-0.5 → taxWriteY    (bottom 0.5pt ऊपर)
+  //             height: 7.0 → 6.5               (top edge dotsY0+3.0 unchanged)
+  //             Note: digits descender ≈ 0pt → bottom inset safe।
+  page.drawRectangle({ x: snap(58),  y: snap(taxWriteY),       width: snap(49.0), height: snap(6.5),  color: white, borderWidth: 0, opacity: 1 });
   page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 0.5),    width: snap(25.3), height: snap(3.5),  color: white, borderWidth: 0, opacity: 1 });
   page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
   rDraw(fmt(fields.gst), taxWriteY);
@@ -1515,13 +1607,17 @@ async function triggerDownload(which) {
   if (which === 'b1' && !resultB1) {
     btn.disabled = true;
     btn.textContent = '⏳ PDF तैयार हो रही है...';
+    await showSpinner('PDF Render हो रही है', 'GST mode — कुछ seconds लगेंगे');
     try {
-      if (!cachedB1Params) { showErr(errId, 'पहले Process करो!'); btn.disabled = false; btn.textContent = '⬇ PDF Download करो'; return; }
+      if (!cachedB1Params) { hideSpinner(); showErr(errId, 'पहले Process करो!'); btn.disabled = false; btn.textContent = '⬇ PDF Download करो'; return; }
+      await delay(0); // mobile: spinner को paint होने दो
       resultB1 = await editPDF_B1(pdfBytes.slice(0), cachedB1Params.gst, cachedB1Params.newTotal);
     } catch (e) {
+      hideSpinner();
       showErr(errId, 'PDF edit में error: ' + e.message);
       btn.disabled = false; btn.textContent = '⬇ PDF Download करो'; return;
     }
+    hideSpinner();
     btn.disabled = false;
     btn.textContent = '⬇ PDF Download करो';
   }
@@ -1530,13 +1626,17 @@ async function triggerDownload(which) {
   if (which === 'b2' && !resultB2) {
     btn.disabled = true;
     btn.textContent = '⏳ PDF तैयार हो रही है...';
+    await showSpinner('PDF Render हो रही है', 'Calculator mode — कुछ seconds लगेंगे');
     try {
-      if (!calcOut) { showErr(errId, 'पहले Calculate करो!'); btn.disabled = false; btn.textContent = '📄 PDF Edit & Download'; return; }
+      if (!calcOut) { hideSpinner(); showErr(errId, 'पहले Calculate करो!'); btn.disabled = false; btn.textContent = '📄 PDF Edit & Download'; return; }
+      await delay(0); // mobile: spinner को paint होने दो
       resultB2 = await editPDF_B2(pdfBytes.slice(0), calcOut.newTAX, calcOut.newDC, calcOut.newTotal);
     } catch (e) {
+      hideSpinner();
       showErr(errId, 'PDF edit में error: ' + e.message);
       btn.disabled = false; btn.textContent = '📄 PDF Edit & Download'; return;
     }
+    hideSpinner();
     btn.disabled = false;
     btn.textContent = '📄 PDF Edit & Download';
   }

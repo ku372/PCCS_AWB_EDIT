@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pccs-awb-v2.7-csv';
+const CACHE_NAME = 'pccs-awb-v2.8-spinner';
 const LOCAL_ASSETS = [
   './',
   './index.html',
