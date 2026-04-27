@@ -508,7 +508,8 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   margin-left: 8px; font-family: inherit; letter-spacing: 0.5px;
 }
 .dash-footer {
-  display: flex; justify-content: center; margin-top: 18px;
+  display: flex; justify-content: center; align-items: center;
+  gap: 10px; margin-top: 18px; flex-wrap: wrap;
 }
 .dash-logout {
   background: transparent; border: 1px solid var(--border);
@@ -517,6 +518,14 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   font-family: inherit;
 }
 .dash-logout:hover { color: var(--red); border-color: var(--red); }
+.dash-fix {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-size: 0.72rem;
+  padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  font-family: inherit;
+}
+.dash-fix:hover { color: var(--accent2); border-color: var(--accent2); }
+.dash-fix:disabled { opacity: 0.6; cursor: wait; }
 
 /* ── History Panel ──────────────────────────────────────────── */
 .history-panel { margin-top: 18px; animation: slide-in 0.28s ease; }
@@ -778,6 +787,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
     </div>
 
     <div class="dash-footer">
+      <button class="dash-fix" id="fixAppBtn" type="button" title="App ko refresh karke errors theek karein">🔧 Fix App</button>
       <button class="dash-logout" id="logoutBtn" type="button">🔒 Lock App</button>
     </div>
   </div>
@@ -1852,6 +1862,41 @@ function checkExtracted(data) {
   document.getElementById('logoutBtn').addEventListener('click', () => {
     clearSession();
     showLogin();
+  });
+
+  // ── Fix App (Hard Refresh) ────────────────────────────────
+  // Clears Cache Storage + unregisters all Service Workers, then
+  // force-reloads the page so the latest version is fetched fresh.
+  document.getElementById('fixAppBtn').addEventListener('click', async () => {
+    const ok = window.confirm('App ko refresh karein? Isse errors theek ho sakte hain.');
+    if (!ok) return;
+
+    const btn = document.getElementById('fixAppBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Refreshing...';
+
+    try {
+      // 1) Clear all Cache Storage entries for this origin
+      if (typeof caches !== 'undefined' && caches.keys) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(k => caches.delete(k)));
+      }
+
+      // 2) Unregister every Service Worker registration
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+    } catch (e) {
+      // Even if cleanup partially fails, still force a reload below.
+      console.warn('Fix App cleanup error:', e);
+    }
+
+    // 3) Force-load the latest version from the server.
+    //    reload(true) is non-standard but harmless; modern browsers
+    //    reload from network when caches+SW are cleared above.
+    try { window.location.reload(true); }
+    catch (_) { window.location.reload(); }
   });
 
   /* ── Recent History (text-only, max 10 entries) ─────────── */

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pccs-awb-v2.9.0-revert';
+const CACHE_NAME = 'pccs-awb-v2.9.1-fixapp';
 const LOCAL_ASSETS = [
   './',
   './index.html',
