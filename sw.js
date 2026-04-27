@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pccs-awb-v2.9.2-offlinebadge';
+const CACHE_NAME = 'pccs-awb-v2.9.3-buildstamp';
 const LOCAL_ASSETS = [
   './',
   './index.html',
