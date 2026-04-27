@@ -527,6 +527,49 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 .dash-fix:hover { color: var(--accent2); border-color: var(--accent2); }
 .dash-fix:disabled { opacity: 0.6; cursor: wait; }
 
+/* ── Offline-Ready Badge ───────────────────────────────────── */
+.offline-badge-wrap {
+  display: flex; justify-content: center; margin: -6px 0 14px;
+}
+.offline-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.62rem; letter-spacing: 0.5px;
+  padding: 4px 10px; border-radius: 999px;
+  background: rgba(148,163,184,0.08);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: inherit;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.offline-badge .ob-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 0 0 2px rgba(148,163,184,0.12);
+}
+.offline-badge[data-state="ready"] {
+  color: #4ade80;
+  border-color: rgba(74,222,128,0.35);
+  background: rgba(74,222,128,0.08);
+}
+.offline-badge[data-state="ready"] .ob-dot {
+  background: #4ade80;
+  box-shadow: 0 0 0 2px rgba(74,222,128,0.18);
+}
+.offline-badge[data-state="caching"] {
+  color: var(--accent2);
+  border-color: rgba(249,115,22,0.35);
+  background: rgba(249,115,22,0.08);
+}
+.offline-badge[data-state="caching"] .ob-dot {
+  background: var(--accent2);
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.18);
+  animation: ob-pulse 1.2s ease-in-out infinite;
+}
+@keyframes ob-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
 /* ── History Panel ──────────────────────────────────────────── */
 .history-panel { margin-top: 18px; animation: slide-in 0.28s ease; }
 .history-head {
@@ -750,6 +793,13 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
       <div class="welcome-greet">Welcome back</div>
       <div class="welcome-name">PRADEEP CARGO &amp; COURIER SERVICE</div>
       <div class="welcome-sub">IndiGo AWB · GST Calculator · PDF Editor</div>
+    </div>
+
+    <div class="offline-badge-wrap">
+      <div class="offline-badge" id="offlineBadge" data-state="checking" title="App ke offline-readiness ka status">
+        <span class="ob-dot"></span>
+        <span class="ob-text">Checking…</span>
+      </div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1785,6 +1835,8 @@ function checkExtracted(data) {
     loginOverlay.style.display = 'none';
     mainApp.classList.add('hidden');
     dashboard.classList.remove('hidden');
+    // Refresh offline-readiness badge each time the dashboard becomes visible
+    if (typeof updateOfflineBadge === 'function') updateOfflineBadge();
   }
 
   function showMainApp() {
@@ -1898,6 +1950,75 @@ function checkExtracted(data) {
     try { window.location.reload(true); }
     catch (_) { window.location.reload(); }
   });
+
+  // ── Offline-Ready Badge ───────────────────────────────────
+  // States:
+  //   "ready"    → SW registered + our cache contains all required local assets
+  //   "caching"  → SW present but cache still being populated
+  //   "off"      → No SW support / no SW registration / no cache
+  //
+  // Required local assets we expect in the cache (mirror of sw.js LOCAL_ASSETS,
+  // minus icons since they're optional for functional offline use).
+  const OFFLINE_REQUIRED = ['./', './index.html', './manifest.json'];
+
+  function setBadgeState(state, label) {
+    const el = document.getElementById('offlineBadge');
+    if (!el) return;
+    el.dataset.state = state;
+    const txt = el.querySelector('.ob-text');
+    if (txt) txt.textContent = label;
+  }
+
+  async function updateOfflineBadge() {
+    // No SW / no Cache API at all
+    if (!('serviceWorker' in navigator) || typeof caches === 'undefined') {
+      setBadgeState('off', 'Online Only');
+      return;
+    }
+
+    let reg;
+    try { reg = await navigator.serviceWorker.getRegistration(); }
+    catch (_) { reg = null; }
+
+    if (!reg) {
+      setBadgeState('off', 'Online Only');
+      return;
+    }
+
+    // Find our cache (any pccs-awb-* entry — version-agnostic so it survives bumps)
+    try {
+      const keys = await caches.keys();
+      const ourCache = keys.find(k => k.startsWith('pccs-awb-'));
+      if (!ourCache) {
+        setBadgeState('caching', 'Caching…');
+        return;
+      }
+
+      const cache = await caches.open(ourCache);
+      const found = await Promise.all(OFFLINE_REQUIRED.map(u => cache.match(u)));
+
+      if (found.every(Boolean)) {
+        setBadgeState('ready', 'Offline Ready');
+      } else {
+        setBadgeState('caching', 'Caching…');
+      }
+    } catch (_) {
+      setBadgeState('off', 'Online Only');
+    }
+  }
+
+  // React to SW lifecycle events so the badge updates without a manual refresh
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      updateOfflineBadge();
+    });
+    // First-load grace: re-check after a short delay to catch the install→cached transition
+    setTimeout(updateOfflineBadge, 1500);
+    setTimeout(updateOfflineBadge, 4000);
+  }
+  // Online/offline network changes also affect perceived readiness
+  window.addEventListener('online',  updateOfflineBadge);
+  window.addEventListener('offline', updateOfflineBadge);
 
   /* ── Recent History (text-only, max 10 entries) ─────────── */
   const HISTORY_KEY = 'pccs_history_v1';
