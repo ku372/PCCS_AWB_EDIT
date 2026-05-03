@@ -1205,9 +1205,9 @@ async function extractAWB(arrayBuffer) {
     return best;
   }
 
-  const wc = findVal(70, 115, 308, 330);   // Weight Charge
-  const da = findVal(70, 115, 220, 241);   // Due Agent
-  const dc = findVal(70, 115, 188, 210);   // Due Carrier
+  const wc = findVal(68, 118, 300, 335) ?? findVal(65, 125, 295, 340);   // Weight Charge
+  const da = findVal(68, 118, 214, 245) ?? findVal(65, 125, 210, 250);   // Due Agent
+  const dc = findVal(68, 118, 184, 215) ?? findVal(65, 125, 180, 220);   // Due Carrier
 
   return { awbNumber, wc, da, dc };
 }
@@ -1546,8 +1546,8 @@ async function extractAnchor(arrayBuffer) {
     const txt = item.str.trim();
     const x   = item.transform[4];
     const y   = item.transform[5];
-    // "..." is always near x=140, in the TAX cell area (y≈255–285)
-    if (txt === '...' && x > 135 && x < 150 && y > 255 && y < 290) {
+    // "..." is usually near x=140, in the TAX cell area
+    if (txt === '...' && x > 130 && x < 155 && y > 245 && y < 295) {
       const dotsY0 = y;                           // baseline
       const dotsY1 = y + (item.height || 9.007);  // top of char box
       return { dotsY0, dotsY1 };
