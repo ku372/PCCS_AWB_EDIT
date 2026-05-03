@@ -1127,8 +1127,8 @@ document.getElementById('fileInput').addEventListener('change', async e => {
     return;
   }
 
-  // Read raw bytes
-  pdfBytes  = await file.arrayBuffer();
+  // Read raw bytes and keep only the first page for lighter mobile processing
+  pdfBytes  = await keepOnlyFirstPage(await file.arrayBuffer());
   resultB1  = null;
   resultB2  = null;
   extracted = null;
@@ -1210,6 +1210,16 @@ async function extractAWB(arrayBuffer) {
   const dc = findVal(70, 115, 188, 210);   // Due Carrier
 
   return { awbNumber, wc, da, dc };
+}
+
+async function keepOnlyFirstPage(arrayBuffer) {
+  const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, {
+    ignoreEncryption: true
+  });
+  while (pdfDoc.getPageCount() > 1) {
+    pdfDoc.removePage(pdfDoc.getPageCount() - 1);
+  }
+  return await pdfDoc.save({ useObjectStreams: false });
 }
 
 // ── B1 Step Helper ───────────────────────────────────────────
