@@ -1046,8 +1046,6 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 // ── pdf.js worker ────────────────────────────────────────────
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-const MAX_PDF_BYTES = IS_MOBILE ? 5 * 1024 * 1024 : 8 * 1024 * 1024;
 
 // ── App State ────────────────────────────────────────────────
 let pdfBytes       = null;   // raw ArrayBuffer of uploaded PDF
@@ -1075,9 +1073,7 @@ document.getElementById('installBtn').addEventListener('click', async () => {
 });
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -1114,6 +1110,11 @@ function hideSpinner() {
   PROC_TITLE_EL.textContent = 'Processing...';
   PROC_SUB_EL.textContent   = 'PDF तैयार हो रही है, कृपया रुकें';
 }
+// ── File Size Guard (mobile-safety) ──────────────────────────
+// IndiGo AWB PDFs are typically < 200 KB. PDFs > 8 MB on phones
+// often crash pdf.js / pdf-lib due to memory pressure.
+const MAX_PDF_BYTES = 8 * 1024 * 1024;
+
 // ── File Input Listener ──────────────────────────────────────
 document.getElementById('fileInput').addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -1121,7 +1122,7 @@ document.getElementById('fileInput').addEventListener('change', async e => {
 
   if (file.size > MAX_PDF_BYTES) {
     alert('PDF बहुत बड़ी है (' + (file.size / 1024 / 1024).toFixed(1) + ' MB).\n' +
-          'इस device पर ' + (MAX_PDF_BYTES / 1024 / 1024) + ' MB तक की PDF safe है।\n' +
+          'Mobile पर ' + (MAX_PDF_BYTES / 1024 / 1024) + ' MB तक की PDF safe है।\n' +
           'कृपया छोटी file try करें।');
     e.target.value = '';
     return;

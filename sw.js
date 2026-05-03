@@ -13,6 +13,7 @@ self.addEventListener('install', e => {
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(LOCAL_ASSETS))
       .then(() => self.skipWaiting())
+      .catch(() => self.skipWaiting())
   );
 });
 
@@ -31,7 +32,12 @@ self.addEventListener('activate', e => {
 // - Local files: cache-first
 // - CDN (pdf.js, pdf-lib, fonts): network-first with cache fallback
 self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
+  let url;
+  try {
+    url = new URL(e.request.url);
+  } catch (_) {
+    return;
+  }
 
   if (url.origin !== location.origin) {
     // CDN resources: network first, cache as fallback
@@ -44,7 +50,7 @@ self.addEventListener('fetch', e => {
           }
           return resp;
         })
-        .catch(() => caches.match(e.request))
+        .catch(() => caches.match(e.request).catch(() => undefined))
     );
     return;
   }
@@ -53,5 +59,6 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request)
       .then(cached => cached || fetch(e.request))
+      .catch(() => fetch(e.request).catch(() => undefined))
   );
 });
