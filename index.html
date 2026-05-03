@@ -973,9 +973,9 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
           <span class="tab-num">2</span>
           <span>OCDC में Amount जोड़ो</span>
         </div>
-        <div class="tab" id="tab3" onclick="pickTab(3)">
+        <div class="tab" id="tab3" onclick="applyMergeDA()" style="opacity:0.4;pointer-events:none;" title="पहले Calculate करो">
           <span class="tab-num">3</span>
-          <span>Prepaid में Amount जोड़ो</span>
+          <span>Due Agent → DC Merge</span>
         </div>
       </div>
 
@@ -992,12 +992,14 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         </div>
       </div>
       <div class="m-input" id="m3">
-        <div class="field">
-          <label>Prepaid में जोड़ने वाला Amount (₹)</label>
-          <input type="number" id="inAdd" step="0.01" inputmode="decimal" placeholder="Current Prepaid में जोड़ना है">
+        <div style="font-size:0.78rem;color:var(--green);padding:12px;background:rgba(34,197,94,0.08);border-radius:8px;line-height:1.6;text-align:center;">
+          ⚡ Method 1 या 2 से Calculate करने के बाद<br>Tab 3 active होगा<br><br>
+          📌 Due Agent → Due Carrier में add होगा<br>
+          📌 PDF में Due Agent = 0.00 दिखेगा
         </div>
       </div>
 
+      <input type="hidden" id="inAdd" value="0">
       <button class="btn btn-calc" onclick="doCalc()">⚡ CALCULATE करें</button>
       <div class="err-box hidden" id="calcErr"></div>
     </div>
@@ -1375,14 +1377,52 @@ async function handleB2() {
 
 // ── Tab Picker ───────────────────────────────────────────────
 function pickTab(n) {
+  if (n === 3) return;  // Method 3 को pickTab से handle नहीं करते
   activeTab = n;
   for (let i = 1; i <= 3; i++) {
     document.getElementById('tab' + i).classList.toggle('active', i === n);
     document.getElementById('m' + i).classList.toggle('visible', i === n);
   }
+  // Method 3 tab disable करो जब method change हो
+  const tab3El = document.getElementById('tab3');
+  tab3El.style.opacity = '0.4';
+  tab3El.style.pointerEvents = 'none';
   // Clear previous result when method changes
   hide('b2Result'); hide('b2DlBtn'); hide('b2RstBtn'); hide('b2ShareBtn'); hide('calcErr');
   resultB2 = null; calcOut = null;
+}
+
+// ── Apply Merge DA (Method 3 — post calculation) ────────────
+function applyMergeDA() {
+  if (!calcOut) return;  // Calculate नहीं हुआ तो कुछ नहीं
+
+  const { wc, da, newTAX, newDC, newTotal } = calcOut;
+
+  // Tab 3 को active दिखाओ
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('tab' + i).classList.toggle('active', i === 3);
+  }
+
+  // Merged values
+  const mergedDC    = r2(newDC + da);   // newDC + original DA
+  const mergedDA    = 0;
+  const mergedTotal = r2(wc + newTAX + mergedDA + mergedDC);
+
+  // calcOut update करो
+  calcOut = { ...calcOut, mergeDA: true, newDC: mergedDC, newTotal: mergedTotal, da: mergedDA };
+
+  // Result UI update करो
+  document.getElementById('rDa').textContent    = '₹ 0.00';
+  document.getElementById('rDc').textContent    = '₹ ' + fmt(mergedDC);
+  document.getElementById('rTotal').textContent = '₹ ' + fmt(mergedTotal);
+  document.getElementById('formulaNote').textContent =
+    `DA (₹${fmt(da)}) → DC में merge | New DC: ₹${fmt(mergedDC)} | Total: ₹${fmt(mergedTotal)}`;
+
+  // PDF re-render
+  resultB2 = null;
+  editPDF_B2(pdfBytes.slice(0), calcOut.newTAX, mergedDC, mergedTotal, true)
+    .then(bytes => { resultB2 = bytes; })
+    .catch(() => { resultB2 = null; });
 }
 
 // ── Live Base Prepaid update ─────────────────────────────────
@@ -1429,10 +1469,6 @@ function doCalc() {
     const oa = parseFloat(document.getElementById('inOcdc').value);
     if (isNaN(oa) || oa <= 0) { showErr('calcErr', 'OCDC Amount भरो!'); return; }
     assume = r2(oa);
-  } else {
-    const ap = parseFloat(document.getElementById('inAdd').value);
-    if (isNaN(ap) || ap <= 0) { showErr('calcErr', 'Add Prepaid Amount भरो!'); return; }
-    assume = r2(ap);
   }
 
   // Core calculations
@@ -1441,7 +1477,7 @@ function doCalc() {
   const newDC    = r2(dc + assume);
   const newTotal = r2(wc + newTAX + da + newDC);
 
-  calcOut = { wc, da, dc, cp, assume, newBase, newTAX, newDC, newTotal };
+  calcOut = { wc, da, dc, cp, assume, newBase, newTAX, newDC, newTotal, mergeDA: false };
 
   // Populate result UI
   document.getElementById('rWc').textContent    = '₹ ' + fmt(wc);
@@ -1452,6 +1488,11 @@ function doCalc() {
   document.getElementById('formulaNote').textContent =
     `Assume: ₹${fmt(assume)} | Base: ₹${fmt(newBase)} × 18% = TAX ₹${fmt(newTAX)}`;
 
+  // ── Method 3 tab enable करो (post-calculation) ───────────────
+  const tab3El = document.getElementById('tab3');
+  tab3El.style.opacity = '1';
+  tab3El.style.pointerEvents = 'auto';
+
   show('b2Result');  addClass('b2Result', 'anim');
   show('b2DlBtn');
   show('b2ShareBtn');
@@ -1459,7 +1500,7 @@ function doCalc() {
 
   // Pre-render the edited PDF in background (non-blocking)
   resultB2 = null;
-  editPDF_B2(pdfBytes.slice(0), newTAX, newDC, newTotal)
+  editPDF_B2(pdfBytes.slice(0), newTAX, newDC, newTotal, (activeTab === 3))
     .then(bytes => { resultB2 = bytes; })
     .catch(() => { resultB2 = null; });
 
@@ -1582,44 +1623,79 @@ async function applyEdits(bytes, fields) {
     });
   }
 
+  // ── EXACT COORDINATES (verified via pdfplumber on AWB PDF) ──
+  // Page height = 842pt
+  // All Y offsets relative to dotsY0 (anchor "..." baseline)
+  // dotsY0 ≈ 269.535 (= 842 - 572.465)
+  //
+  // TAX value cell:    pdf_y_bottom = 280.698  → offset = dotsY0 + 11.163
+  // Due Agent cell:    pdf_y_bottom = 225.454  → offset = dotsY0 - 44.081
+  // Due Carrier cell:  pdf_y_bottom = 193.629  → offset = dotsY0 - 75.906
+  // Total Prepaid cell:pdf_y_bottom = 137.784  → offset = dotsY0 - 131.751
+  // Cell height = 10.208pt for all value cells
+  // RIGHT_EDGE = 104.652 (actual x1 of values)
+
   // ── (A) TAX Cell ─────────────────────────────────────────────
-  // TWO SHORT RECTS (single tall rect always touches top border
-  // at sub-pixel level — "..." char box top is only 0.642pt below border)
+  // VERIFIED EXACT COORDS (pdfplumber on original AWB):
   //
-  // RECT 1: TAX value  (x=57-124)  writeY=dotsY0-3.5  gap-from-border≈4.6pt ✅
-  // RECT 2: "..." ink  (x=134-159.3) covers actual ink (y=dotsY0 to +1.4pt) ✅
-
-  const taxWriteY = snap(dotsY0 - 3.5);
-
-  // CHECKPOINT 2 — borderWidth: 0 और opacity: 1 explicit
-  // borderWidth:0 नहीं होगा तो pdf-lib default stroke draw करेगा
-  // opacity:1 नहीं होगा तो compositing artifact बन सकता है
+  // Original "0.00" (TAX value cell):
+  //   x0=83.33, x1=98.35, top=551.09, bottom=561.30
+  //   pdf_y_bottom = 842 - 561.30 = 280.70  ← TAX VALUE यहाँ लिखनी है
   //
-  // TOP-LEFT CUT FIX (v3):
-  //   x: 57 → 58   : left border (centerline ≈ x=57) की right-half अब safe है।
-  //                   1pt inset देने से left vertical stroke पर white paint नहीं होता।
-  //   width: 67→66  : right edge x=124 intact (57+67 = 58+66 = 124)
-  //   height: 9→7   : top edge dotsY0+5.0 → dotsY0+3.0 (2pt नीचे आई)
-  //                   TAX cell top border ≈ dotsY0+(4.5 to 5.5) range में है।
-  //                   7.0 height से top=dotsY0+3.0 → border से ≥1.5pt margin ✅
-  //                   Existing value max cap-height ≈ dotsY0+2.1 → अभी भी cover ✅
-  page.drawRectangle({ x: snap(58),  y: snap(taxWriteY - 0.5), width: snap(66.0), height: snap(7.0),  color: white, borderWidth: 0, opacity: 1 });
-  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 0.5),    width: snap(25.3), height: snap(3.5),  color: white, borderWidth: 0, opacity: 1 });
-  page.drawText('TAX', { x: snap(138), y: taxWriteY, size: 8, font, color: black });
-  rDraw(fmt(fields.gst), taxWriteY);
+  // "..." (3 dots box):
+  //   x0=140.38, x1=145.83, top=563.46, bottom=572.47
+  //   pdf_y_bottom = 842 - 572.47 = 269.53 = dotsY0  ← TAX WORD यहाँ लिखना है
+  //
+  // Strategy:
+  //   1. Old "0.00" cover करो (TAX value cell)
+  //   2. "..." cover करो (3 dots box)
+  //   3. TAX value → 0.00 की exact jagah (pdf_y=280.70 = dotsY0+11.17)
+  //   4. TAX word → "..." की exact jagah (pdf_y=269.53 = dotsY0)
+
+  // FINAL VERIFIED COORDS (from correct edited PDF 312-27303721):
+  // TAX word: x=138.00, pdf_y=267.76 → dotsY0 - 1.77
+  // TAX value: x1=106.58, pdf_y=263.34 → dotsY0 - 6.19
+  // "..." : pdf_y=269.53 = dotsY0
+
+  const taxValueY = snap(dotsY0 - 6.19);   // TAX value Y
+  const taxWordY  = snap(dotsY0 - 1.77);   // TAX word Y
+
+  // Step 1: Old "0.00" (TAX area) cover करो
+  page.drawRectangle({ x: snap(57), y: snap(taxValueY - 0.5), width: snap(50), height: snap(9.5), color: white, borderWidth: 0, opacity: 1 });
+
+  // Step 2: "..." cover करो
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 1.0), width: snap(26), height: snap(10.0), color: white, borderWidth: 0, opacity: 1 });
+
+  // Step 3: TAX value लिखो
+  rDraw(fmt(fields.gst), taxValueY);
+
+  // Step 4: TAX word लिखो
+  page.drawText('TAX', { x: snap(138), y: taxWordY, size: 8, font, color: black });
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
   page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
 
   // ── (B) Due Carrier Cell (only for B2) ───────────────────────
   if (fields.newDC !== undefined) {
-    page.drawRectangle({ x: snap(57), y: snap(dotsY0 - 81.866), width: snap(67), height: snap(17.215), color: white, borderWidth: 0, opacity: 1 });
-    rDraw(fmt(fields.newDC), snap(dotsY0 - 77.259));
+    const dcRectY  = snap(dotsY0 - 75.906 - 0.3);
+    const dcWriteY = snap(dotsY0 - 75.906 + 1.5);
+    page.drawRectangle({ x: snap(57), y: dcRectY, width: snap(67), height: snap(9.0), color: white, borderWidth: 0, opacity: 1 });
+    rDraw(fmt(fields.newDC), dcWriteY);
+  }
+
+  // ── (D) Due Agent Cell — Method 3 में 0.00 दिखाओ ────────────
+  if (fields.mergeDA) {
+    const daRectY  = snap(dotsY0 - 44.081 - 0.3);
+    const daWriteY = snap(dotsY0 - 44.081 + 1.5);
+    page.drawRectangle({ x: snap(57), y: daRectY, width: snap(67), height: snap(9.0), color: white, borderWidth: 0, opacity: 1 });
+    rDraw('0.00', daWriteY);
   }
 
   // ── (C) Total Prepaid Cell ────────────────────────────────────
-  page.drawRectangle({ x: snap(57), y: snap(dotsY0 - 133.507), width: snap(67), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
-  rDraw(fmt(fields.newTotal), snap(dotsY0 - 133.103));
+  const tpRectY  = snap(dotsY0 - 131.751 - 0.3);
+  const tpWriteY = snap(dotsY0 - 131.751 + 1.5);
+  page.drawRectangle({ x: snap(57), y: tpRectY, width: snap(67), height: snap(9.0), color: white, borderWidth: 0, opacity: 1 });
+  rDraw(fmt(fields.newTotal), tpWriteY);
 
   // ╔══════════════════════════════════════════════════════════════╗
   // ║  FIX #3 — In-Place Save, NO copyPages (CHECKPOINT 3)        ║
@@ -1651,8 +1727,8 @@ async function editPDF_B1(bytes, gst, newTotal) {
 }
 
 // ── PDF Edit — Button 2 ──────────────────────────────────────
-async function editPDF_B2(bytes, newTAX, newDC, newTotal) {
-  return applyEdits(bytes, { gst: newTAX, newDC, newTotal });
+async function editPDF_B2(bytes, newTAX, newDC, newTotal, mergeDA = false) {
+  return applyEdits(bytes, { gst: newTAX, newDC, newTotal, mergeDA });
 }
 
 // ── Download Trigger ─────────────────────────────────────────
@@ -1687,7 +1763,7 @@ async function triggerDownload(which) {
     try {
       if (!calcOut) { hideSpinner(); showErr(errId, 'पहले Calculate करो!'); btn.disabled = false; btn.textContent = '📄 PDF Edit & Download'; return; }
       await delay(0); // mobile: spinner को paint होने दो
-      resultB2 = await editPDF_B2(pdfBytes.slice(0), calcOut.newTAX, calcOut.newDC, calcOut.newTotal);
+      resultB2 = await editPDF_B2(pdfBytes.slice(0), calcOut.newTAX, calcOut.newDC, calcOut.newTotal, calcOut.mergeDA);
     } catch (e) {
       hideSpinner();
       showErr(errId, 'PDF edit में error: ' + e.message);
@@ -1752,7 +1828,11 @@ function resetB2() {
   document.getElementById('inOcdc').value   = '';
   document.getElementById('inAdd').value    = '';
   resultB2 = null; calcOut = null;
-  pickTab(activeTab);
+  // Tab 3 disable करो
+  const tab3El = document.getElementById('tab3');
+  tab3El.style.opacity = '0.4';
+  tab3El.style.pointerEvents = 'none';
+  pickTab(1);
   document.getElementById('b2CalcCard')
     .scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
