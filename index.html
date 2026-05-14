@@ -781,7 +781,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   <!-- Header -->
   <div class="header">
     <h1>✈ PCCS AWB TOOL</h1>
-    <p>IndiGo AWB · GST Calculator · PDF Editor · v2.9.5</p>
+    <p>IndiGo AWB · GST Calculator · PDF Editor · v2.5</p>
   </div>
 
   <!-- Install Banner (hidden until PWA prompt) -->
@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v2.9.5 · 09 May 2026</div>
+      <div class="app-build" id="appBuild">v2.9.4 · 03 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1031,7 +1031,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   </div><!-- /mainApp -->
 
   <div class="version">
-    PCCS AWB Tool v2.9.5 · PRADEEP CARGO &amp; COURIER SERVICE<br>
+    PCCS AWB Tool v2.0 · PRADEEP CARGO &amp; COURIER SERVICE<br>
     No API · No Server Required*&nbsp;&nbsp;|&nbsp;&nbsp;*PDF.js &amp; PDF-lib CDN se load hote hain
   </div>
 
@@ -1046,6 +1046,8 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 // ── pdf.js worker ────────────────────────────────────────────
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const MAX_PDF_BYTES = IS_MOBILE ? 5 * 1024 * 1024 : 8 * 1024 * 1024;
 
 // ── App State ────────────────────────────────────────────────
 let pdfBytes       = null;   // raw ArrayBuffer of uploaded PDF
@@ -1073,7 +1075,9 @@ document.getElementById('installBtn').addEventListener('click', async () => {
 });
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -1110,11 +1114,6 @@ function hideSpinner() {
   PROC_TITLE_EL.textContent = 'Processing...';
   PROC_SUB_EL.textContent   = 'PDF तैयार हो रही है, कृपया रुकें';
 }
-// ── File Size Guard (mobile-safety) ──────────────────────────
-// IndiGo AWB PDFs are typically < 200 KB. PDFs > 8 MB on phones
-// often crash pdf.js / pdf-lib due to memory pressure.
-const MAX_PDF_BYTES = 8 * 1024 * 1024;
-
 // ── File Input Listener ──────────────────────────────────────
 document.getElementById('fileInput').addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -1122,14 +1121,14 @@ document.getElementById('fileInput').addEventListener('change', async e => {
 
   if (file.size > MAX_PDF_BYTES) {
     alert('PDF बहुत बड़ी है (' + (file.size / 1024 / 1024).toFixed(1) + ' MB).\n' +
-          'Mobile पर ' + (MAX_PDF_BYTES / 1024 / 1024) + ' MB तक की PDF safe है।\n' +
+          'इस device पर ' + (MAX_PDF_BYTES / 1024 / 1024) + ' MB तक की PDF safe है।\n' +
           'कृपया छोटी file try करें।');
     e.target.value = '';
     return;
   }
 
-  // Read raw bytes
-  pdfBytes  = await file.arrayBuffer();
+  // Read raw bytes and keep only the first page for lighter mobile processing
+  pdfBytes  = await keepOnlyFirstPage(await file.arrayBuffer());
   resultB1  = null;
   resultB2  = null;
   extracted = null;
@@ -1206,11 +1205,21 @@ async function extractAWB(arrayBuffer) {
     return best;
   }
 
-  const wc = findVal(70, 115, 308, 330);   // Weight Charge
-  const da = findVal(70, 115, 220, 241);   // Due Agent
-  const dc = findVal(70, 115, 188, 210);   // Due Carrier
+  const wc = findVal(68, 118, 300, 335) ?? findVal(65, 125, 295, 340);   // Weight Charge
+  const da = findVal(68, 118, 214, 245) ?? findVal(65, 125, 210, 250);   // Due Agent
+  const dc = findVal(68, 118, 184, 215) ?? findVal(65, 125, 180, 220);   // Due Carrier
 
   return { awbNumber, wc, da, dc };
+}
+
+async function keepOnlyFirstPage(arrayBuffer) {
+  const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, {
+    ignoreEncryption: true
+  });
+  while (pdfDoc.getPageCount() > 1) {
+    pdfDoc.removePage(pdfDoc.getPageCount() - 1);
+  }
+  return await pdfDoc.save({ useObjectStreams: false });
 }
 
 // ── B1 Step Helper ───────────────────────────────────────────
@@ -1537,8 +1546,8 @@ async function extractAnchor(arrayBuffer) {
     const txt = item.str.trim();
     const x   = item.transform[4];
     const y   = item.transform[5];
-    // "..." is always near x=140, in the TAX cell area (y≈255–285)
-    if (txt === '...' && x > 135 && x < 150 && y > 255 && y < 290) {
+    // "..." is usually near x=140, in the TAX cell area
+    if (txt === '...' && x > 130 && x < 155 && y > 245 && y < 295) {
       const dotsY0 = y;                           // baseline
       const dotsY1 = y + (item.height || 9.007);  // top of char box
       return { dotsY0, dotsY1 };
@@ -1657,25 +1666,20 @@ async function applyEdits(bytes, fields) {
   // TAX value: x1=106.58, pdf_y=263.34 → dotsY0 - 6.19
   // "..." : pdf_y=269.53 = dotsY0
 
-  // FINAL VERIFIED COORDS (from manually edited PDF by user):
-  // TAX word: x0=137.00, pdf_y=267.57 → dotsY0 - 1.96
-  // TAX value: x0=79.00, pdf_y=259.91 → dotsY0 - 9.62
-  // dotsY0 = 269.53
+  const taxValueY = snap(dotsY0 - 6.19);   // TAX value Y
+  const taxWordY  = snap(dotsY0 - 1.77);   // TAX word Y
 
-  const taxValueY = snap(dotsY0 - 9.62);   // TAX value Y (manually verified)
-  const taxWordY  = snap(dotsY0 - 1.96);   // TAX word Y (manually verified)
+  // Step 1: Old "0.00" (TAX area) cover करो
+  page.drawRectangle({ x: snap(57), y: snap(taxValueY - 0.5), width: snap(50), height: snap(9.5), color: white, borderWidth: 0, opacity: 1 });
 
-  // Step 1: Old "0.00" (TAX value cell) cover करो
-  page.drawRectangle({ x: snap(57), y: snap(taxValueY - 0.5), width: snap(55), height: snap(10.5), color: white, borderWidth: 0, opacity: 1 });
-
-  // Step 2: "..." dots cover करो — exact dots area only
-  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 4.0), width: snap(16), height: snap(8.0), color: white, borderWidth: 0, opacity: 1 });
+  // Step 2: "..." cover करो
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 1.0), width: snap(26), height: snap(10.0), color: white, borderWidth: 0, opacity: 1 });
 
   // Step 3: TAX value लिखो
   rDraw(fmt(fields.gst), taxValueY);
 
-  // Step 4: TAX word — manually verified position, font size 6
-  page.drawText('TAX', { x: snap(137), y: taxWordY, size: 6, font, color: black });
+  // Step 4: TAX word लिखो
+  page.drawText('TAX', { x: snap(138), y: taxWordY, size: 8, font, color: black });
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
   page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
