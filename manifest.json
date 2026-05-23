@@ -1,16 +1,37 @@
 {
   "name": "PCCS AWB Tool",
-  "short_name": "PCCS AWB",
-  "description": "IndiGo AWB GST Calculator & PDF Editor by PCCS",
+  "short_name": "AWB Tool",
+  "description": "PRADEEP CARGO AWB Calculator & PDF Editor",
   "start_url": "/index.html",
-  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0e1a",
-  "theme_color": "#0a0e1a",
-  "orientation": "portrait-primary",
-  "categories": ["utilities", "productivity"],
+  "theme_color": "#00c6ff",
+  "orientation": "portrait",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ]
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/index.html?share-target=1",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "pdf",
+          "accept": ["application/pdf"]
+        }
+      ]
+    }
+  }
 }

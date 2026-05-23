@@ -1,4 +1,5 @@
-const CACHE_NAME = 'pccs-awb-v2.9.4-buildstamp';
+// PCCS AWB Tool — Service Worker v3 (Share Target support)
+const CACHE_NAME = 'pccs-awb-v3';
 const LOCAL_ASSETS = [
   './',
   './index.html',
@@ -7,58 +8,60 @@ const LOCAL_ASSETS = [
   './icon-512.png'
 ];
 
-// Install: cache local assets
+let sharedFile = null;  // shared file store करने के लिए
+
+// ── Install ──────────────────────────────────────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(LOCAL_ASSETS))
+      .then(c => c.addAll(LOCAL_ASSETS))
       .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting())
   );
 });
 
-// Activate: remove old caches
+// ── Activate ─────────────────────────────────────────────────
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      ))
-      .then(() => self.clients.claim())
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
 });
 
-// Fetch strategy:
-// - Local files: cache-first
-// - CDN (pdf.js, pdf-lib, fonts): network-first with cache fallback
+// ── Fetch ────────────────────────────────────────────────────
 self.addEventListener('fetch', e => {
-  let url;
-  try {
-    url = new URL(e.request.url);
-  } catch (_) {
+  const url = new URL(e.request.url);
+
+  // ── Share Target POST handle करो ──────────────────────────
+  if (e.request.method === 'POST' && url.searchParams.get('share-target') === '1') {
+    e.respondWith((async () => {
+      try {
+        const formData = await e.request.formData();
+        const file = formData.get('pdf');
+        if (file) {
+          sharedFile = file;  // file store करो
+        }
+      } catch (err) {
+        console.warn('Share Target error:', err);
+      }
+      // App page पर redirect करो
+      return Response.redirect('/index.html?share-target=1', 303);
+    })());
     return;
   }
 
-  if (url.origin !== location.origin) {
-    // CDN resources: network first, cache as fallback
-    e.respondWith(
-      fetch(e.request)
-        .then(resp => {
-          if (resp && resp.ok) {
-            const clone = resp.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-          }
-          return resp;
-        })
-        .catch(() => caches.match(e.request).catch(() => undefined))
-    );
-    return;
-  }
-
-  // Local resources: cache first, network fallback
+  // ── Normal fetch — Cache first ────────────────────────────
   e.respondWith(
-    caches.match(e.request)
-      .then(cached => cached || fetch(e.request))
-      .catch(() => fetch(e.request).catch(() => undefined))
+    caches.match(e.request).then(cached => cached || fetch(e.request))
   );
+});
+
+// ── Message — App से file request आए तो दो ──────────────────
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'GET_SHARED_FILE') {
+    if (sharedFile) {
+      e.source.postMessage({ type: 'SHARED_FILE', file: sharedFile });
+      sharedFile = null;  // एक बार देने के बाद clear करो
+    }
+  }
 });
