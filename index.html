@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.0.0 · 09 May 2026</div>
+      <div class="app-build" id="appBuild">v3.0.1 · 09 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1234,14 +1234,14 @@ async function extractAWB(arrayBuffer) {
   const tc   = await page.getTextContent();
   const items = tc.items;
 
-  // ── AWB number ──────────────────────────────────────────────
+  // ── AWB number (312-XXXXXXXX or 312_XXXXXXXX format) ────────
   let awbNumber = '312-XXXXXXXX';
   for (const item of items) {
-    const m = item.str.match(/312-\d{8}/);
-    if (m) { awbNumber = m[0]; break; }
+    const m = item.str.match(/312[-_]\d{8}/);
+    if (m) { awbNumber = m[0].replace('_', '-'); break; }
   }
 
-  // ── Generic value finder ─────────────────────────────────────
+  // ── Strategy 1: Coordinate-based value finder ────────────────
   function findVal(xMin, xMax, yMin, yMax) {
     let best = null, bestY = -1;
     for (const item of items) {
@@ -1252,16 +1252,58 @@ async function extractAWB(arrayBuffer) {
       const m = txt.match(/[\d,]+\.\d{2}/);
       if (m) {
         const val = parseFloat(m[0].replace(/,/g, ''));
-        // Accept positive values; prefer highest y (= original, not overlay)
         if (val > 0 && y > bestY) { bestY = y; best = val; }
       }
     }
     return best;
   }
 
-  const wc = findVal(70, 115, 308, 330);   // Weight Charge
-  const da = findVal(70, 115, 220, 241);   // Due Agent
-  const dc = findVal(70, 115, 188, 210);   // Due Carrier
+  // ── Strategy 2: Label-based finder (fallback) ────────────────
+  function findValByLabel(labelPatterns, xMin = 50, xMax = 140, yRadius = 35) {
+    for (const item of items) {
+      const txt = item.str.trim().toUpperCase();
+      for (const pat of labelPatterns) {
+        if (txt.includes(pat)) {
+          const labelY = item.transform[5];
+          let best = null, bestDist = 999;
+          for (const item2 of items) {
+            const x2 = item2.transform[4];
+            const y2 = item2.transform[5];
+            if (x2 < xMin || x2 > xMax) continue;
+            const m2 = item2.str.trim().match(/^[\d,]+\.\d{2}$/);
+            if (m2) {
+              const val = parseFloat(m2[0].replace(/,/g, ''));
+              if (val >= 0) {
+                const dist = labelY - y2;
+                if (dist > 0 && dist < yRadius && dist < bestDist) {
+                  bestDist = dist; best = val;
+                }
+              }
+            }
+          }
+          if (best !== null) return best;
+        }
+      }
+    }
+    return null;
+  }
+
+  // ── Weight Charge ────────────────────────────────────────────
+  // Primary range (tight), then broader, then label-based
+  const wc = findVal(55, 130, 300, 345)
+          || findVal(50, 150, 280, 370)
+          || findValByLabel(['WEIGHT CHARGE', 'WT CHARGE', 'WT. CHARGE']);
+
+  // ── Due Agent ────────────────────────────────────────────────
+  const da = findVal(55, 130, 212, 252)
+          || findVal(50, 150, 195, 272)
+          || findValByLabel(['DUE AGENT', 'CHARGES DUE AGENT', 'TOTAL OTHER CHARGES DUE AGENT'])
+          || 0;   // कुछ AWBs में Due Agent = 0 होता है
+
+  // ── Due Carrier ──────────────────────────────────────────────
+  const dc = findVal(55, 130, 178, 218)
+          || findVal(50, 150, 160, 235)
+          || findValByLabel(['DUE CARRIER', 'CHARGES DUE CARRIER', 'TOTAL OTHER CHARGES DUE CARRIER']);
 
   return { awbNumber, wc, da, dc };
 }
@@ -1912,13 +1954,13 @@ function showErr(id, msg) {
  */
 function checkExtracted(data) {
   const missing = [];
-  if (!data.wc) missing.push('Weight Charge (y≈313)');
-  if (!data.da) missing.push('Due Agent (y≈225)');
-  if (!data.dc) missing.push('Due Carrier (y≈193)');
+  if (!data.wc) missing.push('Weight Charge');
+  // DA can be 0 legitimately
+  if (data.dc === null || data.dc === undefined) missing.push('Due Carrier');
   if (missing.length) {
     throw new Error(
       'ये values PDF से नहीं मिलीं:\n' + missing.join('\n') +
-      '\n\nसिर्फ IndiGo AWB PDF काम करती है।'
+      '\n\nसिर्फ IndiGo AWB PDF काम करती है।\nPDF दोबारा try करें।'
     );
   }
 }
