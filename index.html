@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v2.9.4 · 03 May 2026</div>
+      <div class="app-build" id="appBuild">v2.9.3 · 26 Apr 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1046,8 +1046,6 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
 // ── pdf.js worker ────────────────────────────────────────────
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-const MAX_PDF_BYTES = IS_MOBILE ? 5 * 1024 * 1024 : 8 * 1024 * 1024;
 
 // ── App State ────────────────────────────────────────────────
 let pdfBytes       = null;   // raw ArrayBuffer of uploaded PDF
@@ -1075,9 +1073,7 @@ document.getElementById('installBtn').addEventListener('click', async () => {
 });
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -1114,21 +1110,105 @@ function hideSpinner() {
   PROC_TITLE_EL.textContent = 'Processing...';
   PROC_SUB_EL.textContent   = 'PDF तैयार हो रही है, कृपया रुकें';
 }
+// ── File Size Guard (mobile-safety) ──────────────────────────
+// IndiGo AWB PDFs are typically < 200 KB. PDFs > 8 MB on phones
+// often crash pdf.js / pdf-lib due to memory pressure.
+const MAX_PDF_BYTES = 8 * 1024 * 1024;
+
 // ── File Input Listener ──────────────────────────────────────
+// ── Share Target — IndexedDB reader ─────────────────────────
+function openShareDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('pccs-share', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('files');
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+
+async function loadSharedFile() {
+  try {
+    const db = await openShareDB();
+    return new Promise((res, rej) => {
+      const tx    = db.transaction('files', 'readwrite');
+      const store = tx.objectStore('files');
+      const getReq = store.get('shared');
+      getReq.onsuccess = e => {
+        const data = e.target.result;
+        if (data) store.delete('shared');  // एक बार read करने के बाद delete
+        res(data || null);
+      };
+      getReq.onerror = e => rej(e.target.error);
+    });
+  } catch (err) {
+    console.warn('IndexedDB read error:', err);
+    return null;
+  }
+}
+
+async function handleSharedFile(data) {
+  if (!data || !data.bytes) return;
+
+  if (data.size > MAX_PDF_BYTES) {
+    alert('PDF बहुत बड़ी है। कृपया छोटी file try करें।');
+    return;
+  }
+
+  pdfBytes  = data.bytes;
+  resultB1  = null;
+  resultB2  = null;
+  extracted = null;
+  calcOut   = null;
+
+  document.getElementById('fileName').textContent = data.name || 'shared.pdf';
+  document.getElementById('fileSize').textContent = ((data.size || 0) / 1024).toFixed(1) + ' KB';
+  show('fileBadge');
+  addClass('uploadZone', 'ready');
+  document.getElementById('uzTitle').textContent = 'File Ready ✅';
+  document.getElementById('uzSub').textContent   = 'Change करने के लिए tap करो';
+
+  document.getElementById('btnB1').disabled = false;
+  document.getElementById('btnB2').disabled = false;
+  remClass('btnB1', 'is-active');
+  remClass('btnB2', 'is-active');
+
+  hide('b1Wrap');
+  hide('b2Wrap');
+  resetB1Steps();
+
+  // URL clean करो
+  window.history.replaceState({}, '', '/index.html');
+
+  // Dashboard से Main App screen पर navigate करो
+  if (typeof showMainApp === 'function') showMainApp();
+}
+
+// Share Target — app open होने पर IndexedDB check करो
+window.addEventListener('load', async () => {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('share-target') === '1') {
+    // थोड़ा wait करो ताकि SW file save कर सके
+    setTimeout(async () => {
+      const data = await loadSharedFile();
+      if (data) await handleSharedFile(data);
+    }, 500);
+  }
+});
+
 document.getElementById('fileInput').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
 
   if (file.size > MAX_PDF_BYTES) {
     alert('PDF बहुत बड़ी है (' + (file.size / 1024 / 1024).toFixed(1) + ' MB).\n' +
-          'इस device पर ' + (MAX_PDF_BYTES / 1024 / 1024) + ' MB तक की PDF safe है।\n' +
+          'Mobile पर ' + (MAX_PDF_BYTES / 1024 / 1024) + ' MB तक की PDF safe है।\n' +
           'कृपया छोटी file try करें।');
     e.target.value = '';
     return;
   }
 
-  // Read raw bytes and keep only the first page for lighter mobile processing
-  pdfBytes  = await keepOnlyFirstPage(await file.arrayBuffer());
+  // Read raw bytes
+  pdfBytes  = await file.arrayBuffer();
   resultB1  = null;
   resultB2  = null;
   extracted = null;
@@ -1205,21 +1285,11 @@ async function extractAWB(arrayBuffer) {
     return best;
   }
 
-  const wc = findVal(68, 118, 300, 335) ?? findVal(65, 125, 295, 340);   // Weight Charge
-  const da = findVal(68, 118, 214, 245) ?? findVal(65, 125, 210, 250);   // Due Agent
-  const dc = findVal(68, 118, 184, 215) ?? findVal(65, 125, 180, 220);   // Due Carrier
+  const wc = findVal(70, 115, 308, 330);   // Weight Charge
+  const da = findVal(70, 115, 220, 241);   // Due Agent
+  const dc = findVal(70, 115, 188, 210);   // Due Carrier
 
   return { awbNumber, wc, da, dc };
-}
-
-async function keepOnlyFirstPage(arrayBuffer) {
-  const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer, {
-    ignoreEncryption: true
-  });
-  while (pdfDoc.getPageCount() > 1) {
-    pdfDoc.removePage(pdfDoc.getPageCount() - 1);
-  }
-  return await pdfDoc.save({ useObjectStreams: false });
 }
 
 // ── B1 Step Helper ───────────────────────────────────────────
@@ -1546,8 +1616,8 @@ async function extractAnchor(arrayBuffer) {
     const txt = item.str.trim();
     const x   = item.transform[4];
     const y   = item.transform[5];
-    // "..." is usually near x=140, in the TAX cell area
-    if (txt === '...' && x > 130 && x < 155 && y > 245 && y < 295) {
+    // "..." is always near x=140, in the TAX cell area (y≈255–285)
+    if (txt === '...' && x > 135 && x < 150 && y > 255 && y < 290) {
       const dotsY0 = y;                           // baseline
       const dotsY1 = y + (item.height || 9.007);  // top of char box
       return { dotsY0, dotsY1 };
@@ -1666,20 +1736,25 @@ async function applyEdits(bytes, fields) {
   // TAX value: x1=106.58, pdf_y=263.34 → dotsY0 - 6.19
   // "..." : pdf_y=269.53 = dotsY0
 
-  const taxValueY = snap(dotsY0 - 6.19);   // TAX value Y
-  const taxWordY  = snap(dotsY0 - 1.77);   // TAX word Y
+  // FINAL VERIFIED COORDS (from manually edited PDF by user):
+  // TAX word: x0=137.00, pdf_y=267.57 → dotsY0 - 1.96
+  // TAX value: x0=79.00, pdf_y=259.91 → dotsY0 - 9.62
+  // dotsY0 = 269.53
 
-  // Step 1: Old "0.00" (TAX area) cover करो
-  page.drawRectangle({ x: snap(57), y: snap(taxValueY - 0.5), width: snap(50), height: snap(9.5), color: white, borderWidth: 0, opacity: 1 });
+  const taxValueY = snap(dotsY0 - 9.62);   // TAX value Y (manually verified)
+  const taxWordY  = snap(dotsY0 - 1.96);   // TAX word Y (manually verified)
 
-  // Step 2: "..." cover करो
-  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 1.0), width: snap(26), height: snap(10.0), color: white, borderWidth: 0, opacity: 1 });
+  // Step 1: Old "0.00" (TAX value cell) cover करो
+  page.drawRectangle({ x: snap(57), y: snap(taxValueY - 0.5), width: snap(55), height: snap(10.5), color: white, borderWidth: 0, opacity: 1 });
+
+  // Step 2: "..." dots cover करो — exact dots area only
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 4.0), width: snap(16), height: snap(8.0), color: white, borderWidth: 0, opacity: 1 });
 
   // Step 3: TAX value लिखो
   rDraw(fmt(fields.gst), taxValueY);
 
-  // Step 4: TAX word लिखो
-  page.drawText('TAX', { x: snap(138), y: taxWordY, size: 8, font, color: black });
+  // Step 4: TAX word — manually verified position, font size 6
+  page.drawText('TAX', { x: snap(137), y: taxWordY, size: 6, font, color: black });
 
   // ── Valuation "0.00" Cell ────────────────────────────────────
   page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
