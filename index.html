@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.0.3 · 09 May 2026</div>
+      <div class="app-build" id="appBuild">v3.0.1 · 09 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1628,35 +1628,19 @@ async function extractAnchor(arrayBuffer) {
   const page = await pdf.getPage(1);
   const tc   = await page.getTextContent();
 
-  let dotsY0 = 269.535, dotsY1 = 278.542;
-
-  // Step 1: "..." anchor खोजो (y range expanded: 240-295)
   for (const item of tc.items) {
     const txt = item.str.trim();
     const x   = item.transform[4];
     const y   = item.transform[5];
-    if (txt === '...' && x > 135 && x < 150 && y > 240 && y < 295) {
-      dotsY0 = y;
-      dotsY1 = y + (item.height || 9.007);
-      break;
+    // "..." is always near x=140, in the TAX cell area (y≈255–285)
+    if (txt === '...' && x > 135 && x < 150 && y > 255 && y < 290) {
+      const dotsY0 = y;                           // baseline
+      const dotsY1 = y + (item.height || 9.007);  // top of char box
+      return { dotsY0, dotsY1 };
     }
   }
-
-  // Step 2: TAX value की actual Y — dots के नीचे, left column "0.00"
-  let taxValueY = null, bestY = -1;
-  for (const item of tc.items) {
-    const txt = item.str.trim();
-    const x   = item.transform[4];
-    const y   = item.transform[5];
-    // Left column (x: 50-130), dots के नीचे, Due Agent (y≈215) के ऊपर
-    if (txt === '0.00' && x > 50 && x < 130 && y < dotsY0 && y > 215) {
-      if (y > bestY) { bestY = y; taxValueY = y; }
-    }
-  }
-
-  if (taxValueY === null) taxValueY = dotsY0 - 13.84; // fallback
-
-  return { dotsY0, dotsY1, taxValueY };
+  // Fallback to known coordinates from most common AWB variant
+  return { dotsY0: 269.535, dotsY1: 278.542 };
 }
 
 // ── Shared PDF Edit Core ──────────────────────────────────────
@@ -1709,7 +1693,7 @@ async function applyEdits(bytes, fields) {
   const black = rgb(0, 0, 0);
 
   // Dynamic anchor
-  const { dotsY0, dotsY1, taxValueY: taxValActual } = await extractAnchor(bytes.slice(0));
+  const { dotsY0, dotsY1 } = await extractAnchor(bytes.slice(0));
 
   // ╔══════════════════════════════════════════════════════════════╗
   // ║  FIX #2 — Coordinate Snapping (CHECKPOINT 1)                ║
@@ -1773,29 +1757,23 @@ async function applyEdits(bytes, fields) {
   // TAX value: x0=79.00, pdf_y=259.91 → dotsY0 - 9.62
   // dotsY0 = 269.53
 
-  // ── TAX Area: Dynamic positioning ───────────────────────────────
-  const taxValueY = snap(taxValActual + 1.5);
-  const taxWordY  = snap(dotsY0 - 1.5);   // dots baseline से थोड़ा नीचे
+  const taxValueY = snap(dotsY0 - 9.62);   // TAX value Y (manually verified)
+  const taxWordY  = snap(dotsY0 - 1.96);   // TAX word Y (manually verified)
 
-  // Rect 1: सिर्फ "0.00" TAX value cover करो (border touch नहीं)
-  page.drawRectangle({
-    x: snap(57), y: snap(taxValActual - 1.5),
-    width: snap(55), height: snap(11),
-    color: white, borderWidth: 0, opacity: 1
-  });
+  // Step 1: Old "0.00" (TAX value cell) cover करो
+  page.drawRectangle({ x: snap(57), y: snap(taxValueY - 0.5), width: snap(55), height: snap(10.5), color: white, borderWidth: 0, opacity: 1 });
 
-  // Rect 2: सिर्फ "..." dots text cover करो (top border से नीचे रहो)
-  page.drawRectangle({
-    x: snap(134), y: snap(dotsY0 - 1.5),
-    width: snap(16), height: snap(dotsY1 - dotsY0 + 0.5),
-    color: white, borderWidth: 0, opacity: 1
-  });
+  // Step 2: "..." dots cover करो — exact dots area only
+  page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 4.0), width: snap(16), height: snap(8.0), color: white, borderWidth: 0, opacity: 1 });
 
-  // TAX value — right-aligned
+  // Step 3: TAX value लिखो
   rDraw(fmt(fields.gst), taxValueY);
 
-  // TAX word — font size 6.5, थोड़ा नीचे
-  page.drawText('TAX', { x: snap(136), y: taxWordY, size: 6.5, font, color: black });
+  // Step 4: TAX word — manually verified position, font size 6
+  page.drawText('TAX', { x: snap(137), y: taxWordY, size: 6, font, color: black });
+
+  // ── Valuation "0.00" Cell ────────────────────────────────────
+  page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
 
   // ── (B) Due Carrier Cell (only for B2) ───────────────────────
   if (fields.newDC !== undefined) {
