@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.0.2 · 09 May 2026</div>
+      <div class="app-build" id="appBuild">v3.0.3 · 09 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1773,27 +1773,28 @@ async function applyEdits(bytes, fields) {
   // TAX value: x0=79.00, pdf_y=259.91 → dotsY0 - 9.62
   // dotsY0 = 269.53
 
-  // ── TAX Area: Dynamic positioning (PDF-version independent) ─────
-  // taxValActual = actual y of "0.00" below "..." (dynamically detected)
-  // dotsY0/dotsY1 = "..." anchor
+  // ── TAX Area: Dynamic positioning ───────────────────────────────
+  const taxValueY = snap(taxValActual + 1.5);
+  const taxWordY  = snap(dotsY0 - 1.5);   // dots baseline से थोड़ा नीचे
 
-  const taxValueY = snap(taxValActual + 1.5);   // value baseline (centered in cell)
-  const taxWordY  = snap(dotsY0 + 1.5);         // TAX word slightly above dots baseline
-
-  // ONE comprehensive white rect covering full TAX area (0.00 + "..." both)
-  // Bottom: taxValActual-2  Top: dotsY1+3  Width: covers left column + dots
+  // Rect 1: सिर्फ "0.00" TAX value cover करो (border touch नहीं)
   page.drawRectangle({
-    x: snap(55),
-    y: snap(taxValActual - 2),
-    width: snap(93),
-    height: snap(dotsY1 - taxValActual + 5),
+    x: snap(57), y: snap(taxValActual - 1.5),
+    width: snap(55), height: snap(11),
     color: white, borderWidth: 0, opacity: 1
   });
 
-  // TAX value — right-aligned, clean position
+  // Rect 2: सिर्फ "..." dots text cover करो (top border से नीचे रहो)
+  page.drawRectangle({
+    x: snap(134), y: snap(dotsY0 - 1.5),
+    width: snap(16), height: snap(dotsY1 - dotsY0 + 0.5),
+    color: white, borderWidth: 0, opacity: 1
+  });
+
+  // TAX value — right-aligned
   rDraw(fmt(fields.gst), taxValueY);
 
-  // TAX word — font size 6.5 (user requested), positioned at "..." location
+  // TAX word — font size 6.5, थोड़ा नीचे
   page.drawText('TAX', { x: snap(136), y: taxWordY, size: 6.5, font, color: black });
 
   // ── (B) Due Carrier Cell (only for B2) ───────────────────────
