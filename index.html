@@ -781,7 +781,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   <!-- Header -->
   <div class="header">
     <h1>✈ PCCS AWB TOOL</h1>
-    <p>IndiGo AWB · GST Calculator · PDF Editor · v3.0.0</p>
+    <p>IndiGo AWB · GST Calculator · PDF Editor · v3.1.0</p>
   </div>
 
   <!-- Install Banner (hidden until PWA prompt) -->
@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.0.1 · 09 May 2026</div>
+      <div class="app-build" id="appBuild">v3.1.0 · 26 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1031,7 +1031,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
   </div><!-- /mainApp -->
 
   <div class="version">
-    PCCS AWB Tool v3.0.0 · PRADEEP CARGO &amp; COURIER SERVICE<br>
+    PCCS AWB Tool v3.1.0 · PRADEEP CARGO &amp; COURIER SERVICE<br>
     No API · No Server Required*&nbsp;&nbsp;|&nbsp;&nbsp;*PDF.js &amp; PDF-lib CDN se load hote hain
   </div>
 
@@ -1072,8 +1072,43 @@ document.getElementById('installBtn').addEventListener('click', async () => {
   document.getElementById('installBanner').classList.add('hidden');
 });
 
+// ── WhatsApp Share Target: shared PDF receive करो ───────────
+async function handleSharedFile(file) {
+  if (!file || !file.type.includes('pdf')) return;
+  if (file.size > MAX_PDF_BYTES) {
+    alert('PDF बहुत बड़ी है। कृपया छोटी file try करें।'); return;
+  }
+  pdfBytes = await file.arrayBuffer();
+  resultB1 = null; resultB2 = null; extracted = null; calcOut = null;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+  show('fileBadge'); addClass('uploadZone', 'ready');
+  document.getElementById('uzTitle').textContent = 'File Ready ✅';
+  document.getElementById('uzSub').textContent   = 'Change करने के लिए tap करो';
+  document.getElementById('btnB1').disabled = false;
+  document.getElementById('btnB2').disabled = false;
+  remClass('btnB1', 'is-active'); remClass('btnB2', 'is-active');
+  hide('b1Wrap'); hide('b2Wrap'); resetB1Steps();
+}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
+
+  // Share Target: WhatsApp से launch होने पर SW से file लो
+  window.addEventListener('load', async () => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('share-target') === '1') {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.addEventListener('message', async e => {
+          if (e.data && e.data.type === 'SHARED_FILE' && e.data.file) {
+            await handleSharedFile(e.data.file);
+            window.history.replaceState({}, '', '/index.html');
+          }
+        });
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_SHARED_FILE' });
+      }
+    }
+  });
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -1116,59 +1151,6 @@ function hideSpinner() {
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
 
 // ── File Input Listener ──────────────────────────────────────
-// ── Share Target Receiver (WhatsApp/other apps से PDF receive) ──
-async function handleSharedFile(file) {
-  if (!file || !file.type.includes('pdf')) return;
-
-  if (file.size > MAX_PDF_BYTES) {
-    alert('PDF बहुत बड़ी है। कृपया छोटी file try करें।');
-    return;
-  }
-
-  pdfBytes  = await file.arrayBuffer();
-  resultB1  = null;
-  resultB2  = null;
-  extracted = null;
-  calcOut   = null;
-
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-  show('fileBadge');
-  addClass('uploadZone', 'ready');
-  document.getElementById('uzTitle').textContent = 'File Ready ✅';
-  document.getElementById('uzSub').textContent   = 'Change करने के लिए tap करो';
-
-  document.getElementById('btnB1').disabled = false;
-  document.getElementById('btnB2').disabled = false;
-  remClass('btnB1', 'is-active');
-  remClass('btnB2', 'is-active');
-
-  hide('b1Wrap');
-  hide('b2Wrap');
-  resetB1Steps();
-}
-
-// Share Target — app launch होने पर POST data check करो
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    // Check if launched via Share Target
-    const url = new URL(window.location.href);
-    if (url.searchParams.get('share-target') === '1') {
-      // Service Worker से shared file लो
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.addEventListener('message', async e => {
-          if (e.data && e.data.type === 'SHARED_FILE' && e.data.file) {
-            await handleSharedFile(e.data.file);
-            // URL clean करो
-            window.history.replaceState({}, '', '/index.html');
-          }
-        });
-        navigator.serviceWorker.controller.postMessage({ type: 'GET_SHARED_FILE' });
-      }
-    }
-  });
-}
-
 document.getElementById('fileInput').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -1234,14 +1216,14 @@ async function extractAWB(arrayBuffer) {
   const tc   = await page.getTextContent();
   const items = tc.items;
 
-  // ── AWB number (312-XXXXXXXX or 312_XXXXXXXX format) ────────
+  // ── AWB number ──────────────────────────────────────────────
   let awbNumber = '312-XXXXXXXX';
   for (const item of items) {
     const m = item.str.match(/312[-_]\d{8}/);
     if (m) { awbNumber = m[0].replace('_', '-'); break; }
   }
 
-  // ── Strategy 1: Coordinate-based value finder ────────────────
+  // ── Generic value finder ─────────────────────────────────────
   function findVal(xMin, xMax, yMin, yMax) {
     let best = null, bestY = -1;
     for (const item of items) {
@@ -1252,58 +1234,16 @@ async function extractAWB(arrayBuffer) {
       const m = txt.match(/[\d,]+\.\d{2}/);
       if (m) {
         const val = parseFloat(m[0].replace(/,/g, ''));
+        // Accept positive values; prefer highest y (= original, not overlay)
         if (val > 0 && y > bestY) { bestY = y; best = val; }
       }
     }
     return best;
   }
 
-  // ── Strategy 2: Label-based finder (fallback) ────────────────
-  function findValByLabel(labelPatterns, xMin = 50, xMax = 140, yRadius = 35) {
-    for (const item of items) {
-      const txt = item.str.trim().toUpperCase();
-      for (const pat of labelPatterns) {
-        if (txt.includes(pat)) {
-          const labelY = item.transform[5];
-          let best = null, bestDist = 999;
-          for (const item2 of items) {
-            const x2 = item2.transform[4];
-            const y2 = item2.transform[5];
-            if (x2 < xMin || x2 > xMax) continue;
-            const m2 = item2.str.trim().match(/^[\d,]+\.\d{2}$/);
-            if (m2) {
-              const val = parseFloat(m2[0].replace(/,/g, ''));
-              if (val >= 0) {
-                const dist = labelY - y2;
-                if (dist > 0 && dist < yRadius && dist < bestDist) {
-                  bestDist = dist; best = val;
-                }
-              }
-            }
-          }
-          if (best !== null) return best;
-        }
-      }
-    }
-    return null;
-  }
-
-  // ── Weight Charge ────────────────────────────────────────────
-  // Primary range (tight), then broader, then label-based
-  const wc = findVal(55, 130, 300, 345)
-          || findVal(50, 150, 280, 370)
-          || findValByLabel(['WEIGHT CHARGE', 'WT CHARGE', 'WT. CHARGE']);
-
-  // ── Due Agent ────────────────────────────────────────────────
-  const da = findVal(55, 130, 212, 252)
-          || findVal(50, 150, 195, 272)
-          || findValByLabel(['DUE AGENT', 'CHARGES DUE AGENT', 'TOTAL OTHER CHARGES DUE AGENT'])
-          || 0;   // कुछ AWBs में Due Agent = 0 होता है
-
-  // ── Due Carrier ──────────────────────────────────────────────
-  const dc = findVal(55, 130, 178, 218)
-          || findVal(50, 150, 160, 235)
-          || findValByLabel(['DUE CARRIER', 'CHARGES DUE CARRIER', 'TOTAL OTHER CHARGES DUE CARRIER']);
+  const wc = findVal(70, 115, 308, 330);   // Weight Charge
+  const da = findVal(70, 115, 220, 241);   // Due Agent
+  const dc = findVal(70, 115, 188, 210);   // Due Carrier
 
   return { awbNumber, wc, da, dc };
 }
@@ -1955,12 +1895,12 @@ function showErr(id, msg) {
 function checkExtracted(data) {
   const missing = [];
   if (!data.wc) missing.push('Weight Charge');
-  // DA can be 0 legitimately
   if (data.dc === null || data.dc === undefined) missing.push('Due Carrier');
+  // Due Agent can be 0 in some AWBs — allowed
   if (missing.length) {
     throw new Error(
       'ये values PDF से नहीं मिलीं:\n' + missing.join('\n') +
-      '\n\nसिर्फ IndiGo AWB PDF काम करती है।\nPDF दोबारा try करें।'
+      '\n\nसिर्फ IndiGo AWB PDF काम करती है।'
     );
   }
 }
