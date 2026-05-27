@@ -1,11 +1,13 @@
 // PCCS AWB Tool — Service Worker v3 (Share Target support)
-const CACHE_NAME = 'pccs-awb-v3.1.5';
+const CACHE_NAME = 'pccs-awb-v3.2.0-ui';
 const LOCAL_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './assets/ui-modern.css',
+  './assets/ui-modern.js'
 ];
 
 let sharedFile = null;  // shared file store करने के लिए
@@ -14,7 +16,15 @@ let sharedFile = null;  // shared file store करने के लिए
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then(c => c.addAll(LOCAL_ASSETS))
+      // Use addAll with a fail-soft fallback: if any single asset 404s
+      // (e.g. ui-modern.* missing on a partial deploy), don't kill install.
+      .then(c => Promise.all(
+        LOCAL_ASSETS.map(url =>
+          c.add(url).catch(err => {
+            console.warn('[SW] skip cache for', url, err);
+          })
+        )
+      ))
       .then(() => self.skipWaiting())
   );
 });
