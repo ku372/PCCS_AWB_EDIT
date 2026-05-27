@@ -7,7 +7,8 @@ const LOCAL_ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './assets/ui-modern.css',
-  './assets/ui-modern.js'
+  './assets/ui-modern.js',
+  './assets/native-bridge.js'
 ];
 
 let sharedFile = null;  // shared file store करने के लिए
