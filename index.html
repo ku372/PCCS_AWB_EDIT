@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.1.2 · 26 May 2026</div>
+      <div class="app-build" id="appBuild">v3.1.3 · 27 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1596,17 +1596,10 @@ async function extractAnchor(arrayBuffer) {
     }
   }
 
-  // Step 2: Due Agent label के ठीक ऊपर (5-25pt) left column "0.00" खोजो
+  // Step 2: Due Agent label से 11.163pt ऊपर = TAX cell baseline
+  // (pdfminer verified: consistent across all IndiGo AWB PDF versions)
   if (dueAgentY !== null) {
-    for (const item of tc.items) {
-      const txt = item.str.trim();
-      const x   = item.transform[4];
-      const y   = item.transform[5];
-      if (txt === '0.00' && x > 50 && x < 130 &&
-          y > dueAgentY && y < dueAgentY + 25) {
-        taxValueY = y; break;
-      }
-    }
+    taxValueY = dueAgentY + 11.163;
   }
 
   return { dotsY0, dotsY1, taxValueY };
