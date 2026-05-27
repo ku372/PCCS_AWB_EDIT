@@ -1,0 +1,31 @@
+{
+  "name": "pccs-awb-tool",
+  "version": "3.2.0",
+  "private": true,
+  "description": "PCCS AWB Tool — IndiGo AWB GST Calculator & PDF Editor (PWA + Capacitor Android wrapper)",
+  "scripts": {
+    "build:web": "node scripts/build-web.js",
+    "cap:init": "echo Already initialised. See capacitor.config.json && exit 0",
+    "cap:add:android": "npm run build:web && npx cap add android",
+    "cap:sync": "npm run build:web && npx cap sync android",
+    "cap:open:android": "npx cap open android",
+    "cap:run:android": "npm run build:web && npx cap run android",
+    "android:assemble:debug": "npm run cap:sync && (cd android && ./gradlew assembleDebug)",
+    "android:assemble:release": "npm run cap:sync && (cd android && ./gradlew assembleRelease)",
+    "android:bundle:release": "npm run cap:sync && (cd android && ./gradlew bundleRelease)",
+    "serve": "python3 -m http.server 5000 --bind 0.0.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/splash-screen": "^7.0.0",
+    "@capacitor/status-bar": "^7.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
