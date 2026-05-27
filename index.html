@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.1.4 · 27 May 2026</div>
+      <div class="app-build" id="appBuild">v3.1.5 · 27 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1737,8 +1737,7 @@ async function applyEdits(bytes, fields) {
   // Step 4: TAX word
   page.drawText('TAX', { x: snap(137), y: taxWordY, size: 6, font, color: black });
 
-  // ── Valuation "0.00" Cell (Valuation Charge row) ─────────────
-  page.drawRectangle({ x: snap(76), y: snap(dotsY0 - 18.215), width: snap(40), height: snap(8.809), color: white, borderWidth: 0, opacity: 1 });
+  // Valuation 0.00 Cell removed — Step 1 white rect already covers it
 
   // ── (B) Due Carrier Cell (only for B2) ───────────────────────
   if (fields.newDC !== undefined) {
