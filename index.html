@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.1.3 · 27 May 2026</div>
+      <div class="app-build" id="appBuild">v3.1.4 · 27 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1726,7 +1726,7 @@ async function applyEdits(bytes, fields) {
   const taxWordY  = snap(dotsY0 - 1.96);
 
   // Step 1: Old "0.00" (TAX value cell) — dynamic position से cover करो
-  page.drawRectangle({ x: snap(57), y: snap(_tv - 1.5), width: snap(55), height: snap(10), color: white, borderWidth: 0, opacity: 1 });
+  page.drawRectangle({ x: snap(57), y: snap(_tv - 2), width: snap(55), height: snap(13), color: white, borderWidth: 0, opacity: 1 });
 
   // Step 2: "..." dots cover करो
   page.drawRectangle({ x: snap(134), y: snap(dotsY0 - 4.0), width: snap(16), height: snap(8.0), color: white, borderWidth: 0, opacity: 1 });
