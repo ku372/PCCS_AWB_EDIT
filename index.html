@@ -806,7 +806,7 @@ input[type="number"].base-field { opacity: 0.65; cursor: default; }
         <span class="ob-dot"></span>
         <span class="ob-text">Checking…</span>
       </div>
-      <div class="app-build" id="appBuild">v3.1.5 · 27 May 2026</div>
+      <div class="app-build" id="appBuild">v3.2.0 · 29 May 2026</div>
     </div>
 
     <div class="dash-section-title">Quick Actions</div>
@@ -1241,9 +1241,36 @@ async function extractAWB(arrayBuffer) {
     return best;
   }
 
-  const wc = findVal(70, 115, 308, 330);   // Weight Charge
-  const da = findVal(70, 115, 220, 241);   // Due Agent
-  const dc = findVal(70, 115, 188, 210);   // Due Carrier
+  // ── Label-based finder (permanent fix) ─────────────────────
+  // Verified across all PDFs: value is ALWAYS at fixed offset below label
+  //   WC / DA : labelY - 16.459pt  |  DC : labelY - 20.662pt
+  function findByLabel(patterns, offset, xMin=55, xMax=130, tol=6) {
+    for (const item of items) {
+      const up = item.str.trim().toUpperCase();
+      if (!patterns.some(p => up.includes(p))) continue;
+      const targetY = item.transform[5] - offset;
+      let best = null, bestDist = 999;
+      for (const item2 of items) {
+        const x2 = item2.transform[4], y2 = item2.transform[5];
+        if (x2 < xMin || x2 > xMax) continue;
+        const dist = Math.abs(y2 - targetY);
+        if (dist > tol) continue;
+        const m = item2.str.trim().match(/^[\d,]+\.\d{2}$/);
+        if (m) {
+          const val = parseFloat(m[0].replace(/,/g, ''));
+          if (val > 0 && dist < bestDist) { bestDist = dist; best = val; }
+        }
+      }
+      if (best !== null) return best;
+    }
+    return null;
+  }
+
+  const wc = findByLabel(['WEIGHT CHARGE'], 16.459);
+  const da = findByLabel(['TOTAL OTHER CHARGES DUE AGENT',
+                          'OTHER CHARGES DUE AGENT'], 16.459) || 0;
+  const dc = findByLabel(['TOTAL OTHER CHARGES DUE CARRIER',
+                          'OTHER CHARGES DUE CARRIER'], 20.662);
 
   return { awbNumber, wc, da, dc };
 }

@@ -1,5 +1,5 @@
 // PCCS AWB Tool — Service Worker v3 (Share Target support)
-const CACHE_NAME = 'pccs-awb-v3.1.5';
+const CACHE_NAME = 'pccs-awb-v3.2.0';
 const LOCAL_ASSETS = [
   './',
   './index.html',
